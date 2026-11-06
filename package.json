@@ -29,6 +29,8 @@
     "docs/",
     "hook/",
     "install-hook.js",
-    "README.md"
-  ]
+    "README.md",
+    "LICENSE"
+  ],
+  "license": "MIT"
 }
