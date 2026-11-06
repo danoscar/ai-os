@@ -1,0 +1,2092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pixel Office · AI OS &amp; Decision Console</title>
+<style>
+:root{
+  --bg:#0e0a22; --panel:#1b1637; --panel2:#241e48; --line:#3d3478; --ink:#ece8ff; --dim:#9990c8;
+  --green:#5be37d; --amber:#ffc83d; --red:#ff5d6c; --blue:#5cc8ff; --pink:#ff7ab8; --violet:#b57bff;
+  --mono: ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono","Courier New",monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:12px/1.45 var(--mono);overflow:hidden;
+  background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:16px 16px}
+button{font:inherit;color:inherit}
+.app{display:grid;gap:10px;padding:10px;height:100vh;min-height:640px;
+  grid-template-columns:minmax(0,1fr) 420px;grid-template-rows:auto auto minmax(0,1fr) 196px;
+  grid-template-areas:"top top" "tabs tabs" "office console" "log console"}
+.panel{background:var(--panel);border:2px solid var(--line);position:relative;min-width:0;min-height:0;
+  box-shadow:inset 0 0 0 2px #120e2b,4px 4px 0 #06041a}
+.panel>h2,.ph{margin:0;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-weight:700}
+
+/* ---------- top bar ---------- */
+.top{grid-area:top;display:grid;grid-template-columns:230px minmax(0,1fr) 420px;gap:18px;padding:10px 14px;align-items:center}
+.brand{display:flex;gap:10px;align-items:center}
+.brand canvas{width:40px;height:40px;image-rendering:pixelated;flex:none}
+.brand h1{margin:0;font-size:15px;letter-spacing:.12em;line-height:1.1}
+.brand p{margin:2px 0 0;font-size:9.5px;color:var(--dim);letter-spacing:.08em}
+.brand .clk{margin-top:3px;color:var(--green);font-size:11px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.kpi{min-width:0;overflow:hidden;container-type:inline-size}
+.kpi-h{display:flex;justify-content:space-between;gap:6px;font-size:9.5px;letter-spacing:.08em;color:var(--dim);white-space:nowrap}
+.kpi-h span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.kpi-h b{color:var(--c);font-weight:700;flex:none}
+@container (max-width:200px){.kpi-h b{display:none}}
+.kpi-v{display:flex;align-items:baseline;gap:6px;margin:3px 0 5px;white-space:nowrap;overflow:hidden}
+@container (max-width:230px){.kpi-v span{display:none}}
+@container (max-width:120px){.kpi-v em{display:none}}
+.kpi-v strong{font-size:17px;letter-spacing:.02em}
+.kpi-v span{color:var(--dim);font-size:10px}
+.kpi-v em{font-style:normal;font-size:10px;color:var(--green);margin-left:auto}
+.cells{display:flex;gap:2px;height:10px}
+.cells i{flex:1;background:#2b2554}
+.cells i.on{background:var(--c);box-shadow:inset 0 -3px 0 rgba(0,0,0,.28),inset 0 2px 0 rgba(255,255,255,.28)}
+.kpi.bump strong{animation:bump .5s}
+@keyframes bump{30%{transform:translateY(-2px);color:var(--green)}}
+.tok{border-left:2px dashed var(--line);padding-left:16px;min-width:0}
+.tok-h{display:flex;justify-content:space-between;align-items:center;font-size:9.5px;letter-spacing:.08em;color:var(--dim)}
+.tok-h b{color:var(--amber)}
+.tok-n{display:flex;align-items:baseline;gap:6px;margin:3px 0 5px;white-space:nowrap;overflow:hidden}
+.tok-n strong{font-size:17px}
+.tok-n span{color:var(--dim);font-size:10px}
+.tok-n em{margin-left:auto;font-style:normal;font-size:11px}
+.tok .cells{--c:var(--amber)}
+.tok-g{display:grid;grid-template-columns:repeat(4,auto) 1fr;gap:4px 14px;margin-top:6px;font-size:10px;color:var(--dim);align-items:end}
+.tok-g b{display:block;color:var(--ink);font-size:11.5px}
+.tok-g canvas{width:100%;height:24px;justify-self:end;max-width:120px}
+.local{display:inline-block;margin-top:5px;font-size:9px;letter-spacing:.06em;color:#7be0a0;border:1px solid #2c6b49;padding:0 5px;background:#10261d}
+
+.lvbtn{margin-left:auto;align-self:center;display:flex;gap:8px;align-items:center;background:#1d1745;border:2px solid var(--line);color:var(--ink);padding:3px 10px;cursor:pointer;font:inherit;font-size:11px}
+.lvbtn:hover{border-color:var(--amber)}.lvbtn b{color:var(--amber);letter-spacing:.06em}.lvbtn small{color:var(--dim)}
+.lvbar{width:90px;height:8px;background:#2b2554;display:inline-block}.lvbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ffc83d,#ff8a3d)}
+.toast{position:fixed;left:50%;top:14px;transform:translate(-50%,-90px);background:#2a2358;border:2px solid var(--amber);padding:8px 18px;z-index:60;font-weight:700;letter-spacing:.06em;transition:transform .35s;box-shadow:4px 4px 0 #06041a;pointer-events:none}.toast.on{transform:translate(-50%,0)}
+.prog{width:min(760px,100%)}.pg-body{padding:14px 18px 18px;overflow:auto;display:grid;gap:14px;grid-template-columns:1fr 1fr}
+.pg-body h4{margin:0 0 6px;font-size:11px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase}.pg-body .wide{grid-column:1/-1}
+.pg-bar{height:14px;background:#2b2554;margin:6px 0}.pg-bar i{display:block;height:100%;background:linear-gradient(90deg,#ffc83d,#ff8a3d)}
+.pg-list{list-style:none;margin:0;padding:0;font-size:12px}.pg-list li{display:flex;gap:8px;padding:3px 0;border-bottom:1px solid #1d1745}.pg-list li.lock{color:#6e68a0}.pg-list li b{min-width:46px;color:var(--amber)}
+.pg-list li.lock b{color:#6e68a0}.pg-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.pg-stats div{background:#0f0b26;border:1px solid #2b2554;padding:6px 8px}.pg-stats b{display:block;font-size:15px}
+.pg-reset{background:none;border:1px solid #7a2a35;color:#ff9aa5;padding:3px 10px;cursor:pointer;font:inherit;font-size:10px}
+@media (max-width:720px){.pg-body{grid-template-columns:1fr}}
+.repos{grid-area:repos;display:none;flex-direction:column;overflow:hidden}
+.app.on-repos{grid-template-rows:auto auto minmax(0,1fr);grid-template-areas:"top top" "tabs tabs" "repos repos"}
+.app.on-repos .office,.app.on-repos .console,.app.on-repos .logp,.app.on-repos .brain{display:none}
+.app.on-repos .repos{display:flex}
+.r-bar{display:flex;gap:10px;align-items:center;padding:8px 12px;border-bottom:2px solid var(--line);flex-wrap:wrap}
+.r-prov{display:flex}.r-prov button{background:#1d1745;border:2px solid var(--line);color:var(--dim);padding:4px 14px;font:inherit;font-weight:700;font-size:11px;cursor:pointer}.r-prov button.on{background:var(--panel);color:var(--ink);box-shadow:inset 0 3px 0 var(--amber)}
+.r-user{color:#7be0a0;font-size:11px}.r-bar input[type=text],.r-bar input:not([type]){background:#07050f;border:2px solid var(--line);color:var(--ink);font:inherit;padding:4px 8px;outline:0;min-width:170px}
+.r-chk{font-size:11px;color:var(--dim);display:flex;gap:4px;align-items:center;cursor:pointer}
+.r-body{flex:1;overflow:auto;padding:12px 14px;display:grid;gap:8px;align-content:start}
+.r-card{background:#0f0b26;border:2px solid var(--line);padding:8px 12px;display:grid;gap:4px}.r-card:hover{border-color:#4a3f93}
+.r-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.r-top b{font-size:13px;color:#fff}.r-top a{color:#8fd0ff;text-decoration:none}
+.r-badge{font-size:9px;letter-spacing:.08em;padding:0 5px;border:1px solid;color:var(--dim)}.r-badge.priv{color:#ffc83d;border-color:#7a5d12}.r-badge.off{color:#7be0a0;border-color:#2c6b49;cursor:pointer;background:#10261d}
+.r-desc{color:#cfc8ff;font-size:12px}.r-meta{display:flex;gap:14px;color:var(--dim);font-size:11px;flex-wrap:wrap;align-items:center}.r-meta .sp{flex:1}
+.r-meta button{background:none;border:0;color:#c9a8ff;cursor:pointer;font:inherit;text-decoration:underline dotted}
+.r-det{border-top:1px dashed var(--line);margin-top:4px;padding-top:6px;font-size:11px;display:grid;grid-template-columns:1fr 1fr;gap:10px}.r-det h5{margin:0 0 3px;color:var(--dim);font-size:10px;letter-spacing:.1em}.r-det div div{padding:1px 0;color:#e3defa}.r-det code{color:#ffd77a}
+.r-empty{padding:40px;color:var(--dim);text-align:center;line-height:1.7}.r-empty code{color:#ffd77a}
+@media (max-width:1100px){.app.on-repos{grid-template-areas:"top" "tabs" "repos";grid-template-rows:auto auto 82vh}.r-det{grid-template-columns:1fr}}
+/* ---------- agent chat ---------- */
+.chat{height:240px;overflow:auto;background:#07050f;border:2px solid var(--line);padding:8px 10px;display:flex;flex-direction:column;gap:6px;font-size:12px}
+.chat .u,.chat .a{max-width:88%;padding:5px 9px;white-space:pre-wrap;word-break:break-word;line-height:1.45}
+.chat .u{align-self:flex-end;background:#3a2f8a;color:#fff}
+.chat .a{align-self:flex-start;background:#17123a;border-left:3px solid var(--c,#5cc8ff);color:#e3defa}
+.chat .t{align-self:flex-start;color:var(--dim);font-size:10.5px;padding-left:6px}
+.chat .e{color:var(--dim);margin:auto;text-align:center}
+.chat-in{display:flex;gap:6px;margin-top:6px}
+.chat-in textarea{flex:1;resize:none;background:#07050f;border:2px solid var(--line);color:var(--ink);font:inherit;padding:6px 8px;outline:0;min-height:38px}
+.chat-in textarea:focus{border-color:var(--amber)}.chat-in textarea:disabled{opacity:.5}
+.chat-note{min-height:16px;margin-top:4px;font-size:11px;color:var(--dim)}.chat-note.err{color:#ff9aa5}.chat-note.run{color:#7be0a0}
+.chat-note button{margin-left:8px}
+/* ---------- main tabs + Second Brain ---------- */
+.mtabs{grid-area:tabs;display:flex;gap:6px;align-items:flex-end}
+.mtab{background:#1d1745;border:2px solid var(--line);border-bottom:0;padding:5px 14px;color:var(--dim);font-weight:700;font-size:11px;letter-spacing:.1em;cursor:pointer}
+.mtab[aria-selected=true]{background:var(--panel);color:var(--ink);box-shadow:inset 0 3px 0 var(--amber)}
+.mtab:hover{color:var(--ink)}
+.brain{grid-area:brain;display:none;grid-template-columns:290px minmax(0,1fr);overflow:hidden}
+.app.on-brain{grid-template-rows:auto auto minmax(0,1fr);grid-template-areas:"top top" "tabs tabs" "brain brain"}
+.app.on-brain .office,.app.on-brain .console,.app.on-brain .logp{display:none}
+.app.on-brain .brain{display:grid}
+.b-side{display:flex;flex-direction:column;min-height:0;border-right:2px solid var(--line);background:#0f0b26}
+.b-head{display:flex;gap:6px;align-items:center;padding:8px 10px;border-bottom:2px solid var(--line)}
+.b-head b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;letter-spacing:.06em}
+.b-side input,.b-setup input{background:#07050f;border:2px solid var(--line);color:var(--ink);font:inherit;padding:5px 8px;margin:8px 10px 4px;outline:0}
+.b-side input:focus,.b-setup input:focus{border-color:var(--amber)}
+.b-tree{flex:1;overflow:auto;padding:4px 6px 12px;font-size:11.5px}
+.b-tree details>summary{cursor:pointer;padding:2px 4px;color:#cfc8ff;list-style:none;white-space:nowrap}
+.b-tree details>summary::before{content:"▸ ";color:var(--dim)}
+.b-tree details[open]>summary::before{content:"▾ "}
+.b-tree details>div{margin-left:12px;border-left:1px dashed #2b2554;padding-left:4px}
+.b-tree button{display:block;width:100%;text-align:left;background:transparent;border:0;color:var(--ink);font:inherit;padding:2px 6px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.b-tree button:hover{background:#241d52}.b-tree button.on{background:#3a2f8a}
+.b-res small{display:block;color:var(--dim);white-space:normal;font-size:10px}
+.b-main{display:flex;flex-direction:column;min-width:0;min-height:0}
+.b-vtabs{display:flex;gap:4px;padding:8px 12px 0;border-bottom:2px solid var(--line)}
+.b-vtabs button{background:transparent;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;padding:5px 10px;color:var(--dim);font-weight:700;font-size:10.5px;letter-spacing:.06em;cursor:pointer}
+.b-vtabs button.on{color:var(--ink);border-bottom-color:var(--amber)}
+.b-vtabs button:disabled{opacity:.35;cursor:not-allowed}
+.b-vtabs .sp{flex:1}
+.b-note{flex:1;overflow:auto;padding:18px 28px 40px;line-height:1.55}
+.b-back{padding:2px 12px;color:var(--dim);font-size:11px;border-bottom:1px solid #2b2554;display:flex;gap:10px;align-items:center;min-height:26px}
+.b-back button{background:none;border:0;color:var(--amber);cursor:pointer;font:inherit}
+.md{max-width:860px;color:#e3defa}
+.md h1,.md h2,.md h3,.md h4{margin:1.1em 0 .4em;line-height:1.25;color:#fff}.md h1{font-size:22px;border-bottom:2px solid var(--line);padding-bottom:4px}.md h2{font-size:18px}.md h3{font-size:15px}.md h4,.md h5,.md h6{font-size:13px}
+.md p{margin:.5em 0}.md ul,.md ol{margin:.4em 0;padding-left:22px}.md li{margin:2px 0}
+.md code{background:#1a1440;padding:1px 5px;color:#ffd77a}.md pre{background:#0a071c;border:1px solid var(--line);padding:10px;overflow:auto}.md pre code{background:none;padding:0;color:#d6d0ff}
+.md blockquote{margin:.6em 0;padding:4px 12px;border-left:4px solid #6a5acd;background:#16113a;color:#cfc8ff}
+.md .callout{margin:.7em 0;border-left:4px solid var(--c,#5cc8ff);background:color-mix(in srgb,var(--c,#5cc8ff) 12%,#0f0b26);padding:6px 12px}.md .callout>b{display:block;color:var(--c,#5cc8ff);text-transform:capitalize}
+.md table{border-collapse:collapse;margin:.6em 0;font-size:12px}.md th,.md td{border:1px solid var(--line);padding:4px 8px;text-align:left}.md th{background:#1d1745}
+.md hr{border:0;border-top:2px dashed var(--line);margin:1.2em 0}
+.md a{color:#8fd0ff}.md a.wl{color:#c9a8ff;cursor:pointer;text-decoration:underline dotted}.md a.wl.miss{color:#ff9aa5}
+.md img.emb{max-width:100%;border:1px solid var(--line)}
+.md mark{background:#6b5a14;color:#fff}.md .tag{color:#7be0a0;background:#10261d;padding:0 4px}.md .task{list-style:none;margin-left:-18px}
+.md .props{display:grid;grid-template-columns:max-content 1fr;gap:2px 12px;font-size:11px;color:var(--dim);background:#0f0b26;border:1px solid #2b2554;padding:6px 10px;margin-bottom:12px}
+.md .props b{color:#b8b2e6}
+.b-bl{margin-top:26px;border-top:2px dashed var(--line);padding-top:8px;font-size:11px;color:var(--dim)}.b-bl button{background:none;border:0;color:#c9a8ff;cursor:pointer;font:inherit;text-decoration:underline dotted;margin-right:10px}
+.b-graph{flex:1;position:relative;min-height:0;display:none;background:#07050f}
+.b-graph.on{display:block}.b-graph canvas{width:100%;height:100%;display:block;cursor:grab}
+.b-ginfo{position:absolute;left:10px;top:10px;max-width:290px;background:#120e2bee;border:2px solid var(--line);padding:8px 10px;font-size:11px}
+.b-ginfo h4{margin:0 0 4px;font-size:12px;color:#fff}.b-ginfo button{display:block;background:none;border:0;color:#c9a8ff;cursor:pointer;font:inherit;padding:1px 0;text-align:left}
+.b-gleg{position:absolute;right:10px;top:10px;background:#120e2bd8;border:1px solid var(--line);padding:6px 8px;font-size:10px;max-width:220px}
+.b-gleg i{display:inline-block;width:8px;height:8px;margin-right:5px}
+.b-gstat{position:absolute;left:10px;bottom:8px;font-size:10px;color:var(--dim)}
+.b-setup{grid-column:1/-1;overflow:auto;padding:26px 34px;display:none}
+.brain.setup .b-setup{display:block}.brain.setup .b-side,.brain.setup .b-main{display:none}
+.b-setup h2{font-size:18px;margin:0 0 6px;color:#fff;text-transform:none;letter-spacing:.02em}
+.b-setup p{max-width:720px;color:#cfc8ff;margin:.4em 0}
+.b-setup .row{display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap}.b-setup .row input{margin:0;flex:1;min-width:240px}
+.b-setup ul{list-style:none;padding:0;margin:6px 0;max-width:720px}
+.b-setup li{display:flex;gap:10px;align-items:center;border:1px solid var(--line);background:#0f0b26;padding:6px 10px;margin:4px 0}
+.b-setup li span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.b-setup li small{color:var(--dim)}
+.b-setup .crumb{color:var(--amber);word-break:break-all;margin:8px 0 2px}
+.b-setup .dirs{max-height:240px;overflow:auto;border:1px solid var(--line);background:#07050f;max-width:720px}
+.b-setup .dirs button{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid #1a1440;color:var(--ink);font:inherit;padding:4px 10px;cursor:pointer}
+.b-setup .dirs button:hover{background:#241d52}.b-setup .badge2{color:#7be0a0;font-size:10px;margin-left:8px}
+@media (max-width:1100px){.app.on-brain{grid-template-areas:"top" "tabs" "brain";grid-template-rows:auto auto 82vh}.brain{grid-template-columns:200px minmax(0,1fr)}}
+
+/* ---------- office ---------- */
+.office{grid-area:office;display:flex;flex-direction:column}
+.office-h{display:flex;align-items:center;gap:14px;padding:7px 12px;border-bottom:2px solid var(--line);flex:none;flex-wrap:wrap}
+.live{color:var(--red);font-weight:700;letter-spacing:.1em;font-size:10px}
+.live::before{content:"";display:inline-block;width:7px;height:7px;background:var(--red);margin-right:5px;animation:blink 1.2s steps(2) infinite}
+@keyframes blink{50%{opacity:.15}}
+.legend{display:flex;gap:12px;font-size:10.5px;color:var(--dim);flex-wrap:wrap}
+.legend span b{color:var(--ink)}
+.dot{display:inline-block;width:8px;height:8px;margin-right:4px;vertical-align:-1px}
+.rooms{display:flex;gap:10px;font-size:9.5px;letter-spacing:.06em;color:var(--dim);margin-left:auto;flex-wrap:wrap}
+.rooms i{display:inline-block;width:8px;height:8px;margin-right:4px;background:var(--c)}
+.zoom{display:flex;gap:4px}
+.zoom button,.ctl{background:#2a2358;border:0;padding:2px 8px;cursor:pointer;box-shadow:inset -2px -2px 0 #120e2b,inset 2px 2px 0 #4a3f93;font-weight:700;font-size:11px}
+.zoom button:hover,.ctl:hover{background:#34297a}
+.stage-wrap{position:relative;flex:1;min-height:0}
+.stage{position:absolute;inset:0;overflow:auto;display:flex;background:
+  radial-gradient(1px 1px at 20px 30px,#ffffffaa,transparent),radial-gradient(1px 1px at 90px 120px,#bfd0ff88,transparent),
+  radial-gradient(2px 2px at 160px 60px,#ffffff66,transparent),radial-gradient(1px 1px at 210px 170px,#ffffff99,transparent),
+  radial-gradient(1px 1px at 60px 200px,#ffd9ff88,transparent),radial-gradient(1px 1px at 130px 15px,#ffffffaa,transparent),#0a0720;
+  background-size:240px 220px}
+.stage canvas{margin:auto;display:block;flex:none}
+.tip{position:absolute;z-index:6;pointer-events:none;background:#120d2c;border:2px solid var(--c,#6a5acd);padding:8px 10px;min-width:210px;max-width:270px;
+  box-shadow:4px 4px 0 rgba(0,0,0,.5);opacity:0;transition:opacity .08s}
+.tip.on{opacity:1}
+.tip h4{margin:0;font-size:12px;display:flex;gap:6px;align-items:center}
+.tip small{color:var(--dim);display:block;margin-bottom:5px}
+.tip p{margin:4px 0 0}
+.tip .hint{color:var(--dim);font-size:10px;margin-top:6px}
+.chip{display:inline-block;padding:0 6px;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#10102a;background:var(--cc,#888)}
+.chip.working{--cc:var(--green)}.chip.waiting{--cc:var(--amber)}.chip.idle{--cc:#8a86b8}
+.crown{display:inline-block;width:14px;height:9px;vertical-align:-1px;background:
+  linear-gradient(#f5c542,#f5c542) 0 4px/14px 5px no-repeat,
+  linear-gradient(#f5c542,#f5c542) 0 0/2px 4px no-repeat,linear-gradient(#f5c542,#f5c542) 4px 0/2px 4px no-repeat,
+  linear-gradient(#f5c542,#f5c542) 8px 0/2px 4px no-repeat,linear-gradient(#f5c542,#f5c542) 12px 0/2px 4px no-repeat}
+.bar{height:6px;background:#2b2554;margin-top:4px}
+.bar i{display:block;height:100%;background:var(--green)}
+
+/* ---------- console ---------- */
+.console{grid-area:console;display:flex;flex-direction:column}
+.con-h{padding:10px 12px 8px;display:flex;align-items:center;gap:10px;flex:none}
+.con-h h2{font-size:12px;color:var(--ink)}
+.badge{margin-left:auto;background:var(--amber);color:#1a1230;padding:1px 8px;font-weight:700;font-size:10.5px;letter-spacing:.06em}
+.badge.crit{background:var(--red);color:#fff;animation:blink 1.4s steps(2) infinite}
+.tabs{display:flex;gap:0;padding:0 8px;flex:none;border-bottom:2px solid var(--line);flex-wrap:wrap}
+.tab{background:transparent;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;padding:6px 8px;cursor:pointer;color:var(--dim);font-weight:700;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected=true]{color:var(--ink);border-bottom-color:var(--c,var(--amber))}
+.tab em{font-style:normal;background:#2b2554;padding:0 5px;margin-left:4px;color:var(--ink)}
+.tab[aria-selected=true] em{background:var(--c,var(--amber));color:#14102a}
+.queue{flex:1;min-height:0;overflow:auto;padding:10px;display:flex;flex-direction:column;gap:10px}
+.item{background:var(--panel2);border:2px solid #382f72;border-left:6px solid var(--c);padding:9px 10px 10px;transition:opacity .25s,transform .25s,max-height .3s,margin .3s,padding .3s;max-height:360px;overflow:hidden;flex:none}
+.item.fresh{animation:fresh 1.1s}
+@keyframes fresh{0%{background:#4a3a1a;transform:translateX(14px);opacity:.2}30%{opacity:1}100%{background:var(--panel2);transform:none}}
+.item.leaving{opacity:0;transform:translateX(40px);max-height:0;padding-top:0;padding-bottom:0;margin-bottom:-10px;border-width:0}
+.item.held{opacity:.78;border-style:dashed}
+.item.focus{outline:2px solid #fff;outline-offset:2px}
+.i-top{display:flex;gap:6px;align-items:center;font-size:9.5px;letter-spacing:.06em;font-weight:700;flex-wrap:wrap}
+.i-top .pr{padding:0 6px;color:#14102a;background:var(--blue)}
+.item.p1 .pr{background:var(--red);color:#fff}.item.p2 .pr{background:var(--amber)}
+.i-top .dv{color:var(--c)}.i-top .tk{color:var(--dim)}
+.i-top .rv,.i-top .hd{padding:0 5px;border:1px solid currentColor}
+.i-top .rv{color:var(--blue)}.i-top .hd{color:var(--amber)}
+.i-top .age{margin-left:auto;color:var(--dim)}
+.item h3{margin:6px 0 3px;font-size:13px;line-height:1.3}
+.item p{margin:0;color:var(--dim);font-size:11px}
+.item .who{margin-bottom:3px}
+.item .why{color:#c9c3ee;margin-top:2px}
+.loc{background:none;border:0;padding:0;cursor:pointer;color:var(--c);font-weight:700}
+.loc:hover{text-decoration:underline}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:9px}
+.a{border:0;padding:7px 6px;cursor:pointer;font-weight:700;font-size:11px;letter-spacing:.03em;text-transform:uppercase;color:#10102a;background:var(--bc);
+  box-shadow:inset -2px -2px 0 rgba(0,0,0,.3),inset 2px 2px 0 rgba(255,255,255,.35),0 0 0 2px #0a0720}
+.a:hover{filter:brightness(1.12)}.a:active{transform:translateY(1px)}
+.a:focus-visible,.tab:focus-visible,.ctl:focus-visible,.zoom button:focus-visible,.loc:focus-visible,.x:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.a.ok{--bc:var(--green)}.a.no{--bc:var(--red);color:#fff}.a.rv{--bc:var(--blue)}.a.hd{--bc:var(--amber)}
+.item.held .a.hd{background:#fff3c4}
+.empty{margin:auto;text-align:center;color:var(--dim);padding:30px 10px}
+.empty b{display:block;color:var(--green);font-size:13px;margin-bottom:4px}
+.con-f{flex:none;border-top:2px solid var(--line);padding:8px 12px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:10px;color:var(--dim)}
+.con-f b{display:block;font-size:14px;color:var(--ink)}
+.con-f .ok b{color:var(--green)}.con-f .no b{color:var(--red)}.con-f .rv b{color:var(--blue)}.con-f .hd b{color:var(--amber)}
+
+/* ---------- log ---------- */
+.logp{grid-area:log;display:flex;flex-direction:column;background:#07050f}
+.log-h{display:flex;align-items:center;gap:8px;padding:5px 10px;background:#15102e;border-bottom:2px solid var(--line);flex:none}
+.log-h .ph{color:var(--green)}
+.log-h .path{color:var(--dim);font-size:10.5px}
+.log-h .ctl{margin-left:auto}.log-h .ctl+.ctl{margin-left:0}
+.log{flex:1;min-height:0;overflow:auto;padding:6px 10px 6px;font-size:11.5px;line-height:1.55;scroll-behavior:auto}
+.ln{white-space:pre-wrap;word-break:break-word}
+.ln .ts{color:#5e5890}
+.ln .lv{display:inline-block;min-width:5.2ch;text-align:center;margin:0 6px 0 4px;font-weight:700;font-size:10px;color:#07050f;background:#8a86b8}
+.lv.OK{background:var(--green)}.lv.WARN{background:var(--amber)}.lv.ERR{background:var(--red);color:#fff}.lv.AUDIT{background:var(--pink)}.lv.TASK{background:var(--blue)}.lv.SYS{background:#8a86b8}
+.ln .who{font-weight:700}
+.ln .msg{color:#c8c2ec}
+.ln.audit .msg{color:#ffd0ee}
+.ln.warn .msg{color:#ffe29a}
+.cursor{display:inline-block;width:8px;height:13px;background:var(--green);vertical-align:-2px;animation:blink 1s steps(2) infinite}
+.prompt{color:var(--green);padding:0 10px 6px;flex:none;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.prompt input{flex:1;min-width:0;background:transparent;border:0;outline:0;color:var(--ink);font:inherit;caret-color:var(--green);padding:0}
+.prompt input::placeholder{color:#6e68a0}
+.prompt:focus-within{background:#17123a}
+.mode{font-size:9px;letter-spacing:.1em;padding:1px 6px;border:1px solid;font-weight:700}
+.mode.demo{color:var(--amber);border-color:#7a5d12;background:#2a2008}
+.mode.live{color:#7be0a0;border-color:#2c6b49;background:#10261d;cursor:pointer}
+.psel{background:#2a2358;color:var(--ink);border:0;padding:3px 6px;font:inherit;font-size:11px;font-weight:700;box-shadow:inset -2px -2px 0 #120e2b,inset 2px 2px 0 #4a3f93;max-width:230px;cursor:pointer}
+.psel:focus-visible{outline:2px solid #fff}
+.pager{display:inline-flex;gap:3px;margin-left:8px}.pager .ctl.on{background:#5b4fc4;color:#fff}
+.mode.warn{color:#ff8a95;border-color:#7a2a35;background:#2a0d14}
+.m-assign{margin-left:8px;background:#2a2358;border:0;padding:4px 10px;cursor:pointer;font-weight:700;font-size:11px;box-shadow:inset -2px -2px 0 #120e2b,inset 2px 2px 0 #4a3f93;color:var(--ink)}
+.m-assign:hover{background:#34297a}
+.fulltxt{white-space:pre-wrap;max-height:150px;overflow:auto;margin:4px 0 0;padding:6px 8px;background:#0f0b26;border:1px solid var(--line);font:inherit;color:#c9c3ee}
+
+/* ---------- modal ---------- */
+.modal{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;background:rgba(5,3,18,.72);padding:16px}
+.modal.on{display:flex}
+.dialog{width:min(940px,100%);max-height:calc(100vh - 32px);overflow:auto;display:flex;flex-direction:column;border-color:var(--c)}
+.m-h{display:flex;gap:16px;padding:14px 16px;align-items:center;border-bottom:2px solid var(--line);background:linear-gradient(90deg,color-mix(in srgb,var(--c) 22%,var(--panel)),var(--panel))}
+.m-h canvas{width:75px;height:100px;image-rendering:pixelated;background:color-mix(in srgb,var(--c) 30%,#120e2b);border:2px solid var(--c);flex:none}
+.m-h h2{margin:0;font-size:18px;color:var(--ink);letter-spacing:.02em;text-transform:none;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.m-h p{margin:3px 0 0;color:var(--dim)}
+.m-h>div:nth-child(2){flex:1;min-width:0}
+.m-assign{align-self:flex-start;margin-left:auto}
+.x{align-self:flex-start;background:#2a2358;border:0;width:30px;height:30px;font-size:16px;cursor:pointer;box-shadow:inset -2px -2px 0 #120e2b,inset 2px 2px 0 #4a3f93}
+.x:hover{background:var(--red)}
+.m-b{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px 16px 16px}
+.m-b section{background:#130f2c;border:2px solid #302868;padding:10px 12px;min-width:0}
+.m-b h4{margin:0 0 8px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.m-b .wide{grid-column:1/-1}
+.now{font-size:13px}
+.specs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.specs div{background:#1b1637;padding:6px 8px}
+.specs b{display:block;font-size:14px}
+.specs span{font-size:9.5px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase}
+.tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.tl li{display:grid;grid-template-columns:1fr auto;gap:2px 8px}
+.tl li small{color:var(--dim)}
+.tl .bar{grid-column:1/-1;margin:0}
+.m-log{height:190px;background:#07050f;border:2px solid #302868}
+.dec{border-left:5px solid var(--c);padding:2px 0 2px 10px}
+.dec .acts{grid-template-columns:repeat(4,1fr)}
+
+@media (max-width:1500px){
+  .top{grid-template-columns:190px minmax(0,1fr) 360px;gap:14px}
+  .tok-g{gap:4px 10px}
+}
+@media (max-width:1100px){
+  body{overflow:auto}
+  .app{height:auto;grid-template-columns:minmax(0,1fr);grid-template-rows:none;grid-template-areas:"top" "tabs" "office" "console" "log"}
+  .top{grid-template-columns:minmax(0,1fr);gap:12px}
+  .tok{border-left:0;padding-left:0;border-top:2px dashed var(--line);padding-top:10px}
+  .stage-wrap{height:min(62vh,520px);flex:none}
+  .console{height:640px}
+  .logp{height:230px}
+  .rooms{margin-left:0}
+}
+@media (max-width:720px){
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .m-b{grid-template-columns:1fr}
+  .dec .acts{grid-template-columns:1fr 1fr}
+  .tok-g{grid-template-columns:repeat(2,auto)}
+  .tok-g canvas{grid-column:1/-1;max-width:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top panel">
+    <div class="brand">
+      <canvas id="logo" width="20" height="20" aria-hidden="true"></canvas>
+      <div>
+        <h1>PIXEL OFFICE</h1>
+        <p>AI OPERATING SYSTEM · DECISION CONSOLE</p>
+        <div class="clk" id="clock">--:--:--</div>
+      </div>
+    </div>
+    <div class="kpis" id="kpis" aria-label="Division KPIs"></div>
+    <div class="tok" id="tok" aria-label="Token and resource meter"></div>
+  </header>
+
+  <nav class="mtabs" id="mtabs" role="tablist" aria-label="Main view">
+    <button class="mtab" role="tab" data-mt="office" aria-selected="true">▣ OFFICE</button>
+    <button class="mtab" role="tab" data-mt="brain" aria-selected="false">◈ SECOND BRAIN</button>
+    <button class="mtab" role="tab" data-mt="repos" aria-selected="false">⎇ REPOS</button>
+    <button class="lvbtn" id="lvBtn" title="Progress, perks and how to level up"><b id="lvNum">★ LV 1</b><span class="lvbar"><i id="lvFill"></i></span><small id="lvXp">0 XP</small></button>
+  </nav>
+
+  <section class="office panel" aria-label="Isometric office">
+    <div class="office-h">
+      <span class="live" id="liveTag">LIVE</span><span class="mode demo" id="modeTag">DEMO · SIMULATED</span>
+      <div class="legend" id="legend"></div>
+      <select id="projSel" class="psel" hidden aria-label="Open one project"></select>
+      <select id="skinSel" class="psel" aria-label="Skin" title="Skin"><option value="office">▣ Office</option><option value="farm">❀ Farm</option><option value="space">✦ Space</option></select>
+      <select id="wxSel" class="psel" hidden aria-label="Weather" title="Weather"><option value="auto">☁ Weather: auto</option><option value="sun">☀ Sunny</option><option value="cloud">☁ Cloudy</option><option value="rain">☂ Rain</option></select>
+      <select id="tmSel" class="psel" hidden aria-label="Time of day" title="Time of day"><option value="auto">◐ Time: real clock</option><option value="day">☀ Day</option><option value="night">☾ Night</option><option value="fast">⏩ Fast cycle</option></select>
+      <div class="rooms">
+        <span style="--c:#b57bff"><i></i>COMMAND</span>
+        <span style="--c:#ff7ab8"><i></i>CONTENT</span>
+        <span style="--c:#5be37d"><i></i>BOT BIZ · AUTONOMOUS</span>
+        <span style="--c:#5cc8ff"><i></i>AGENCY</span>
+      </div>
+      <div class="zoom"><button id="zOut" title="Zoom out" aria-label="Zoom out">−</button><button id="zFit" title="Fit to window">FIT</button><button id="zIn" title="Zoom in" aria-label="Zoom in">+</button></div>
+    </div>
+    <div class="stage-wrap" id="stageWrap">
+      <div class="stage" id="stage"><canvas id="cv"></canvas></div>
+      <div class="tip" id="tip" role="tooltip"></div>
+    </div>
+  </section>
+
+  <section class="brain panel" id="brain" aria-label="Second brain">
+    <aside class="b-side">
+      <div class="b-head"><b id="bName">Second Brain</b><button class="ctl" id="bChange" title="Pick another folder of notes">CHANGE…</button></div>
+      <input id="bSearch" placeholder="search notes…" autocomplete="off" aria-label="Search notes">
+      <div class="b-tree" id="bTree"></div>
+    </aside>
+    <div class="b-main">
+      <div class="b-vtabs" id="bVtabs">
+        <button data-v="note" class="on">NOTE</button><button data-v="links">LINK GRAPH</button><button data-v="graphify" id="bGfyTab" disabled title="No graphify-out/graph.json in this folder">GRAPHIFY</button>
+        <span class="sp"></span><button id="bReport" hidden>GRAPH REPORT</button>
+      </div>
+      <div class="b-back" id="bBack"></div>
+      <div class="b-note md" id="bNote"></div>
+      <div class="b-graph" id="bGraphWrap"><canvas id="bGraph"></canvas><div class="b-ginfo" id="bGinfo">Click a node. Double-click opens the note. Drag to pan, scroll to zoom.</div><div class="b-gleg" id="bGleg"></div><div class="b-gstat" id="bGstat"></div></div>
+    </div>
+    <div class="b-setup" id="bSetup"></div>
+  </section>
+
+  <section class="repos panel" id="repos" aria-label="Repositories">
+    <div class="r-bar">
+      <div class="r-prov" id="rProv"><button data-p="github" class="on">GitHub</button><button data-p="gitlab">GitLab</button></div>
+      <span class="r-user" id="rUser"></span>
+      <select id="rOwner" class="psel" hidden aria-label="Owner"></select>
+      <input id="rSearch" placeholder="filter repos…" autocomplete="off" aria-label="Filter repositories">
+      <select id="rSort" class="psel" aria-label="Sort"><option value="pushed">Recently pushed</option><option value="name">Name</option><option value="stars">Stars</option></select>
+      <label class="r-chk"><input type="checkbox" id="rForks"> forks</label><label class="r-chk"><input type="checkbox" id="rArch"> archived</label>
+      <label class="r-chk"><input type="checkbox" id="rOffice"> in office</label>
+      <button class="ctl" id="rReload" title="Reload from the server">↻</button>
+    </div>
+    <div class="r-body" id="rBody"></div>
+  </section>
+
+  <aside class="console panel" aria-label="Decision and approval console">
+    <div class="con-h"><h2>▣ Decision Console</h2><span class="badge" id="badge">0 PENDING</span></div>
+    <div class="tabs" id="tabs" role="tablist"></div>
+    <div class="queue" id="queue" aria-live="polite"></div>
+    <div class="con-f" id="conf"></div>
+  </aside>
+
+  <section class="logp panel" aria-label="Live activity and audit log">
+    <div class="log-h"><span class="ph">▶ LIVE ACTIVITY &amp; AUDIT LOG</span><span class="path">tail -f /var/log/office/events.log</span>
+      <button class="ctl" id="logPause">PAUSE</button><button class="ctl" id="logClear">CLEAR</button></div>
+    <div class="log" id="log" role="log" aria-live="off"></div>
+    <div class="prompt"><span>operator@pixel-office:~$</span><input id="cmd" autocomplete="off" spellcheck="false" aria-label="Assign a task" placeholder="demo mode — run `node server.js` to go live"></div>
+  </section>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="modal" id="progModal" aria-hidden="true"><div class="dialog panel prog" role="dialog" aria-modal="true" aria-label="Progress"><div class="m-h"><div><h2 id="pgTitle">Progress</h2><p id="pgSub"></p></div><button class="x" id="pgClose" aria-label="Close" style="margin-left:auto">✕</button></div><div class="pg-body" id="pgBody"></div></div></div>
+<div class="modal" id="modal" aria-hidden="true">
+  <div class="dialog panel" role="dialog" aria-modal="true" aria-labelledby="mTitle" id="dialog">
+    <div class="m-h">
+      <canvas id="mPortrait" width="150" height="200"></canvas>
+      <div><h2 id="mTitle"></h2><p id="mSub"></p></div>
+      <button class="m-assign" id="mAssign" title="Assign a task to this agent">✎ ASSIGN TASK</button><button class="x" id="mClose" aria-label="Close" style="margin-left:8px">✕</button>
+    </div>
+    <div class="m-b">
+      <section><h4>Current activity</h4><div id="mNow"></div></section>
+      <section><h4>Performance specs</h4><div id="mSpecs" class="specs"></div></section>
+      <section class="wide" id="mDecSec" hidden><h4>Awaiting your decision</h4><div id="mDec"></div></section>
+      <section class="wide" id="mChatSec" hidden><h4>Conversation <small style="color:var(--dim);font-weight:400" id="mChatHint"></small></h4>
+        <div class="chat" id="mChat" aria-live="polite"></div>
+        <div class="chat-in"><textarea id="mChatIn" rows="2" placeholder="Message this session… (Enter to send, Shift+Enter for a new line)" aria-label="Message to this session"></textarea><button class="ctl" id="mChatSend">SEND</button></div>
+        <div class="chat-note" id="mChatNote"></div>
+      </section>
+      <section><h4>Active tasks</h4><ul class="tl" id="mTasks"></ul></section>
+      <section><h4>Live log feed</h4><div class="log m-log" id="mLog"></div></section>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+window.SKINID = 'office'; window.SKINS = {};
+/* =====================================================================
+   PIXEL OFFICE — AI OS + Decision Console
+   Single-file, no dependencies, no network, no audio. All data is mock.
+   ===================================================================== */
+
+/* ---------- utils ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const rand = (a, b) => a + Math.random() * (b - a);
+const randi = (a, b) => Math.floor(rand(a, b + 1));
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const clip = (t, n) => { t = String(t ?? '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
+const pad2 = n => String(n).padStart(2, '0');
+const fmt = n => Math.round(n).toLocaleString('en-US');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const clockStr = () => { const d = new Date(); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds()); };
+function shade(hex, f) {
+  const n = parseInt(hex.slice(1), 16); let r = n >> 16 & 255, g = n >> 8 & 255, b = n & 255;
+  const t = f < 0 ? 0 : 255, p = Math.abs(f);
+  r = Math.round(r + (t - r) * p); g = Math.round(g + (t - g) * p); b = Math.round(b + (t - b) * p);
+  return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+const setHTML = (el, html) => { if (el._h !== html) { el.innerHTML = html; el._h = html; } };
+
+/* ---------- isometric geometry (2:1 tiles of 64x32) ---------- */
+const NT = 16, RW = 7, WALL_H = 46, SLAB = 12;
+const ORGX = 528, ORGY = 78, W0 = 1056, H0 = 612;
+const iso = (x, y, z = 0) => [ORGX + (x - y) * 32, ORGY + (x + y) * 16 - z];
+
+/* ---------- data: divisions ---------- */
+const DIVS = {
+  command:    { label: 'COMMAND', tab: 'Command',    color: '#b57bff', ox: 0, oy: 0, floorA: '#5d4aa0', floorB: '#544299', rugIn: '#7a2f4f', rugBd: '#e0b84d', wallR: '#7a63c4', wallL: '#53419a' },
+  content:    { label: 'CONTENT', tab: 'Content',    color: '#ff7ab8', ox: 9, oy: 0, floorA: '#cf679f', floorB: '#c45c94', rugIn: '#2f9e9a', rugBd: '#c4f5ec', wallR: '#e585b6', wallL: '#b9608f' },
+  autonomous: { label: 'BOT BIZ', tab: 'Autonomous', color: '#5be37d', ox: 9, oy: 9, floorA: '#4aa667', floorB: '#42985d', rugIn: '#1f2f55', rugBd: '#5be37d', wallR: '#62c37f', wallL: '#418f59' },
+  agency:     { label: 'AGENCY',  tab: 'Agency',     color: '#5cc8ff', ox: 0, oy: 9, floorA: '#4a89d4', floorB: '#427dc9', rugIn: '#e8903c', rugBd: '#ffe0a8', wallR: '#68a6ea', wallL: '#4679bb' }
+};
+const DKEYS = ['command', 'content', 'autonomous', 'agency'];
+
+/* ---------- data: agents ---------- */
+const SKIN = ['#f6d2a8', '#e8b88a', '#c98e62', '#8d5a3b', '#5b3a26'];
+const HAIR = ['#1f1b2e', '#4a2f1d', '#8a5a2b', '#d9a441', '#c2482f', '#e9e9f2', '#3b5bdb', '#7a3fd1'];
+const AGENT_DEFS = [
+  // id, name, role, div, head, model, look
+  ['chief',    'Chief of Staff',  'Orchestrator · routes every task',   'command',    true,  'Opus 5.5',   { skin: SKIN[1], hair: HAIR[0], style: 'short',  shirt: '#b57bff' }],
+  ['ops',      'Ops Planner',     'Scheduling & capacity planning',      'command',    false, 'Sonnet 5.5', { skin: SKIN[3], hair: HAIR[0], style: 'bun',    shirt: '#8f6bdc' }],
+  ['audit',    'Audit-Bot',       'QA, compliance & audit trail',        'command',    false, 'Haiku 5.5',  { skin: SKIN[0], hair: HAIR[5], style: 'phones', shirt: '#6f58c0' }],
+  ['clead',    'Content Lead',    'Editorial director',                  'content',    true,  'Opus 5.5',   { skin: SKIN[2], hair: HAIR[3], style: 'long',   shirt: '#ff7ab8' }],
+  ['seo',      'Bot-SEO',         'SEO & keyword strategy',              'content',    false, 'Sonnet 5.5', { skin: SKIN[0], hair: HAIR[6], style: 'spiky',  shirt: '#e85d9d' }],
+  ['script',   'Script Writer',   'Long-form video scripts',             'content',    false, 'Sonnet 5.5', { skin: SKIN[1], hair: HAIR[1], style: 'cap',    shirt: '#ffa0cf', cap: '#ff4d8d' }],
+  ['thumb',    'Thumb-Gen',       'Thumbnail & asset generation',        'content',    false, 'Haiku 5.5',  { skin: SKIN[4], hair: HAIR[0], style: 'phones', shirt: '#d9478d' }],
+  ['biz',      'BizBot Prime',    'Autonomous revenue lead',             'autonomous', true,  'Opus 5.5',   { skin: SKIN[2], hair: HAIR[2], style: 'short',  shirt: '#5be37d' }],
+  ['lead',     'Lead-Scout',      'Lead discovery & enrichment',         'autonomous', false, 'Haiku 5.5',  { skin: SKIN[0], hair: HAIR[4], style: 'spiky',  shirt: '#3fbf61' }],
+  ['price',    'Price-Bot',       'Pricing experiments',                 'autonomous', false, 'Sonnet 5.5', { skin: SKIN[3], hair: HAIR[7], style: 'bun',    shirt: '#2f9e4f' }],
+  ['dir',      'Agency Director', 'Client strategy lead',                'agency',     true,  'Opus 5.5',   { skin: SKIN[1], hair: HAIR[5], style: 'long',   shirt: '#5cc8ff' }],
+  ['liaison',  'Client Liaison',  'Account management',                  'agency',     false, 'Sonnet 5.5', { skin: SKIN[4], hair: HAIR[0], style: 'short',  shirt: '#3da5e0' }],
+  ['prop',     'Proposal-Bot',    'Proposals & contracts',               'agency',     false, 'Sonnet 5.5', { skin: SKIN[0], hair: HAIR[1], style: 'cap',    shirt: '#6fb6f0', cap: '#2f7fd0' }],
+  ['outreach', 'Outreach-Bot',    'Outbound sequences',                  'agency',     false, 'Haiku 5.5',  { skin: SKIN[2], hair: HAIR[6], style: 'phones', shirt: '#4a95d8' }]
+];
+const DESK_REL = [[2, 1], [5, 1], [2, 4], [5, 4]];
+const AGENTS = [], AG = {};
+(function initAgents() {
+  const count = {};
+  AGENT_DEFS.forEach((d, i) => {
+    const [id, name, role, div, head, model, look] = d;
+    const slot = count[div] = (count[div] ?? -1) + 1;
+    const D = DIVS[div], rel = DESK_REL[slot];
+    const a = {
+      id, name, role, div, head, model, look, idx: i, phase: Math.random() * 10,
+      desk: [D.ox + rel[0], D.oy + rel[1]],
+      state: 'working', subtask: '', progress: 0, dur: 10, timer: 10, pending: null, revisionOf: null,
+      tasks: [], log: [],
+      stats: { done: randi(14, 64), success: rand(91, 99.4), latency: rand(0.9, 4.1), tokens: randi(120, 880) * 1000, ctx: rand(18, 74), errors: randi(0, 3), uptime: rand(3, 41) },
+      focusUntil: 0
+    };
+    const [x, y] = iso(a.desk[0] + 1.5, a.desk[1] + 1.5, 0);
+    a.ax = Math.round(x); a.ay = Math.round(y);
+    AGENTS.push(a); AG[id] = a;
+  });
+})();
+
+/* ---------- data: task & decision banks ---------- */
+const WORK = {
+  command: ['Triaging inbound requests', 'Re-ranking the task queue', 'Reconciling agent budgets', 'Drafting weekly ops brief', 'Resolving dependency conflicts', 'Auditing last 24h of actions'],
+  content: ['Drafting script: “Agents at Work”', 'Clustering 340 keywords', 'Rendering thumbnail set B', 'Editing video cut v3', 'Scheduling newsletter #212', 'Repurposing a post into 6 shorts'],
+  autonomous: ['Scraping 120 new leads', 'A/B testing checkout copy', 'Repricing 14 SKUs', 'Monitoring bot uptime', 'Reconciling payouts', 'Tuning support-bot replies'],
+  agency: ['Researching Northwind Labs', 'Drafting proposal v2', 'Sequencing outreach batch #7', 'Preparing the client report', 'Qualifying 18 inbound leads', 'Updating the CRM pipeline']
+};
+const ASK = {
+  command: [
+    ['Raise weekly token budget +10%', 'Burn is tracking 6% above plan. Chief of Staff requests headroom for the Q4 launch.', 2, 3],
+    ['Spawn 2 extra Outreach-Bot instances', 'Pipeline backlog is 3 days deep. Estimated +14% throughput.', 3, 2],
+    ['Escalation: QA failing on Bot-SEO output', 'Audit-Bot flagged 4 hallucinated citations in the last batch. Pause publishing?', 1, 5],
+    ['Re-prioritise roadmap: agency before content', 'Ops Planner suggests shifting 30% of capacity to client work this week.', 2, 4],
+    ['Rotate production API keys', 'Scheduled 90-day rotation. Requires a short downtime on 3 integrations.', 3, 2]
+  ],
+  content: [
+    ['Publish video “Inside the AI Office”', 'Final cut v3 passed QA. Scheduled for Thu 18:00 to 18.4k subscribers.', 2, 2],
+    ['Send newsletter #212 to 18,420 subscribers', 'Subject line B won the preview test (+9% open rate).', 1, 3],
+    ['Approve thumbnail set B (4 variants)', 'A/B plan: rotate every 6h, keep the top performer after 48h.', 3, 1],
+    ['Sponsor mention: add disclosure copy', 'Legal template attached. Required before the sponsored short can go live.', 2, 2],
+    ['Repurpose podcast into 6 shorts', 'Clips auto-selected; clips 3 and 5 need a human tone check.', 3, 1]
+  ],
+  autonomous: [
+    ['Raise Pro plan price $19 → $24', 'Price-Bot projects +11% MRR with ~2% extra churn. New users only.', 2, 3],
+    ['Spend $240 on a paid-acquisition test', 'Lead-Scout wants to test 3 audiences for 72h. Hard cap of $240.', 1, 2],
+    ['Deploy Support-Bot v2.3 to production', 'Canary ran 6h at 99.2% resolution. Rollback plan attached.', 2, 4],
+    ['Auto-refund ≤ $30 without review', 'Would clear 38 pending tickets automatically. Needs your sign-off.', 3, 2],
+    ['Enable weekend autonomous mode', 'Bots run unattended Sat–Sun with a $60 daily cap and a kill-switch.', 2, 3]
+  ],
+  agency: [
+    ['Send proposal to Northwind Labs ($8.5k)', 'Proposal v2 has revised scope and a 15% retainer discount.', 1, 3],
+    ['Approve contract redlines — Acme Corp', 'Liability cap changed 2× → 1×. Legal check suggests accepting.', 2, 2],
+    ['Launch outbound batch #7 (240 leads)', '3-step sequence, personalised per lead. Estimated 6 replies.', 3, 1],
+    ['Offer 10% discount to Brightside Co.', 'Prospect stalled for 9 days; a discount may close the $4.2k deal.', 2, 1],
+    ['Publish case study: Helio Studios', 'Client approval for quote #2 is still pending. Ready if you waive it.', 3, 1]
+  ]
+};
+const CHAT = {
+  command: ['queued task #{t} for {x}', 'balanced load across {n} agents', 'synced shared memory (rev {n})', 'flagged stale ticket #{t}', 'reprioritised backlog (+{n} items)', 'submitted QA review'],
+  content: ['submitted QA review', 'fetched {n} sources', 'passed readability check (score {n})', 'rendered frame batch {n}/12', 'cache hit {n}%', 'queued asset export #{t}'],
+  autonomous: ['scraped {n} new leads', 'webhook 200 OK in {ms}ms', 'repriced SKU-{n}', 'health check passed ({ms}ms)', 'payout reconciled: ${n}', 'submitted QA review'],
+  agency: ['sent follow-up #{t}', 'enriched {n} contacts', 'synced CRM ({n} deltas)', 'booked a discovery call', 'updated pipeline: {n} open', 'submitted QA review']
+};
+const REVISE_NOTES = ['tighten the copy', 'add the missing sources', 'lower the budget cap', 'clarify the scope', 'shorten the timeline', 'double-check the numbers'];
+
+/* ---------- state ---------- */
+let TICKET = 103;
+let DID = 0;
+const decisions = [];
+const stats = { approved: 0, rejected: 0, revised: 0, respTotal: 0, respN: 0 };
+let filter = 'all';
+const KPIS = [
+  { key: 'subs', name: 'SUBSCRIBERS',        div: 'content',    val: 18420, goal: 25000, f: v => fmt(v),       today: 128 },
+  { key: 'rev',  name: 'REVENUE · MRR',      div: 'autonomous', val: 12860, goal: 20000, f: v => '$' + fmt(v), today: 340 },
+  { key: 'conv', name: 'CLIENT CONVERSIONS', div: 'agency',     val: 7,     goal: 12,    f: v => fmt(v),       today: 1 },
+  { key: 'ops',  name: 'TASKS CLEARED',      div: 'command',    val: 62,    goal: 100,   f: v => fmt(v),       today: 9 }
+];
+const TOK = { budget: 250e6, used: 168.4e6, rate: 0, sessions: 0, hist: [], resetAt: Date.now() + ((2 * 24 + 3) * 3600 + 14 * 60) * 1000 };
+
+/* ---------- logging ---------- */
+const logBuf = []; let logPaused = false, LOGSEQ = 0; const logQueue = [];
+function logLine(level, who, msg, div) {
+  const l = { t: clockStr(), level, who, msg, div };
+  logBuf.push(l); if (logBuf.length > 600) logBuf.shift();
+  if (logPaused) { logQueue.push(l); return; }
+  appendLog(l);
+}
+function lineHTML(l) {
+  const col = l.div ? DIVS[l.div].color : '#b8b2e6';
+  const cls = l.level === 'AUDIT' ? ' audit' : l.level === 'WARN' ? ' warn' : '';
+  return `<div class="ln${cls}"><span class="ts">[${l.t}]</span><span class="lv ${l.level}">${l.level}</span><span class="who" style="color:${col}">${esc(l.who)}</span> <span class="msg">${esc(l.msg)}</span></div>`;
+}
+function appendLog(l) {
+  const el = $('#log'); const stick = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+  el.insertAdjacentHTML('beforeend', lineHTML(l));
+  while (el.childElementCount > 400) el.firstElementChild.remove();
+  if (stick) el.scrollTop = el.scrollHeight;
+}
+function agentLog(a, level, msg) {
+  a.log.push({ t: clockStr(), level, who: a.name, msg, div: a.div, seq: ++LOGSEQ });
+  if (a.log.length > 60) a.log.shift();
+  logLine(level, a.name, msg, a.div);
+}
+
+/* ---------- simulation ---------- */
+function newTasks(a, current) {
+  a.tasks = [{ id: ++TICKET, title: current, kind: 'active' }];
+  const pool = WORK[a.div].filter(w => w !== current).sort(() => Math.random() - .5);
+  for (let i = 0; i < randi(1, 2); i++) a.tasks.push({ id: TICKET + 20 + i * 3 + randi(0, 2), title: pool[i], kind: 'queued' });
+}
+function setWorking(a, subtask, dur, announce) {
+  a.state = 'working'; a.subtask = subtask; a.dur = dur; a.timer = dur; a.progress = 0; a.pending = null;
+  newTasks(a, subtask);
+  if (announce) logLine('TASK', 'Chief of Staff', `queued task #${a.tasks[0].id} → ${a.name}`, 'command');
+  agentLog(a, 'INFO', `started: ${subtask}`);
+}
+function pendingCount() { return decisions.length; }
+function requestApproval(a, tmpl, rev) {
+  const t = tmpl || pick(ASK[a.div].filter(x => !decisions.some(d => d.title === x[0])) || ASK[a.div]);
+  if (!t) return;
+  const d = { id: 'D' + (++DID), agent: a.id, div: a.div, title: t[0], detail: t[1], prio: t[2], blocks: t[3], tok: randi(8, 90), ticket: a.tasks[0] ? a.tasks[0].id : ++TICKET, created: Date.now(), held: false, rev: rev || 0, fresh: true, tmpl: t, esc: false };
+  decisions.push(d);
+  a.state = 'waiting'; a.pending = d.id; a.subtask = 'Waiting for approval: ' + d.title; a.progress = 100;
+  agentLog(a, 'WARN', rev ? `resubmitted for approval (rev ${rev + 1}): ${d.title}` : `needs approval: ${d.title}`);
+  renderQueue(); renderTabs(); renderBadge(); refreshModal();
+}
+function finishTask(a) {
+  a.state = 'idle'; a.subtask = 'Task complete — standing by'; a.progress = 100; a.timer = rand(7, 15); a.stats.done++;
+  KPIS[3].val = Math.min(KPIS[3].goal, KPIS[3].val + 1); KPIS[3].today++; bumpKPI(3);
+  agentLog(a, 'OK', 'task complete, queue clear');
+}
+function simStep(a, dt) {
+  a.timer -= dt;
+  if (a.state === 'working') {
+    a.progress = clamp(a.progress + (dt / a.dur) * 100, 0, 99);
+    a.stats.tokens += dt * rand(30, 70) * (a.head ? 1.6 : 1);
+    if (a.timer <= 0) {
+      if (a.revisionOf) { const r = a.revisionOf; a.revisionOf = null; requestApproval(a, r.tmpl, r.rev); return; }
+      const r = Math.random();
+      if (r < 0.58 && pendingCount() < 8) requestApproval(a, null, 0);
+      else if (r < 0.82) finishTask(a);
+      else setWorking(a, pick(WORK[a.div]), rand(9, 20), false);
+    }
+  } else if (a.state === 'idle' && a.timer <= 0) {
+    setWorking(a, pick(WORK[a.div]), rand(10, 22), true);
+  }
+}
+function chatter() {
+  const w = AGENTS.filter(a => a.state === 'working'); if (!w.length) return;
+  const a = pick(w);
+  const m = pick(CHAT[a.div]).replace('{t}', ++TICKET).replace('{x}', pick(AGENTS).name).replace('{n}', randi(3, 96)).replace('{ms}', randi(38, 420));
+  agentLog(a, 'INFO', m);
+}
+function resolve(id, act) {
+  if (OBS) return resolveObs(id, act);
+  if (LIVE) return resolveLive(id, act);
+  const d = decisions.find(x => x.id === id); if (!d) return;
+  const a = AG[d.agent], D = DIVS[d.div];
+  if (act === 'hold') {
+    d.held = !d.held;
+    logLine('AUDIT', 'operator', `${d.held ? 'kept open' : 'released hold on'} #${d.ticket} “${d.title}”`, d.div);
+    agentLog(a, 'INFO', d.held ? 'decision held open by operator' : 'hold released');
+    burst(a, d.held ? 'HELD' : 'OPEN', '#ffc83d', ['#ffc83d', '#fff3c4']);
+    renderQueue(); renderTabs(); renderBadge(); refreshModal(); return;
+  }
+  stats.respTotal += (Date.now() - d.created) / 1000; stats.respN++;
+  decisions.splice(decisions.indexOf(d), 1);
+  const card = $(`.item[data-id="${id}"]`); if (card) card.classList.add('leaving');
+  a.pending = null;
+  if (act === 'approve') {
+    stats.approved++;
+    logLine('AUDIT', 'operator', `APPROVED #${d.ticket} “${d.title}”`, d.div);
+    setWorking(a, 'Executing approved action: ' + d.title, rand(12, 22), false);
+    agentLog(a, 'OK', 'approval received — executing');
+    burst(a, 'APPROVED', '#5be37d', ['#5be37d', '#b6ffc9', '#ffffff']);
+    kpiBump(d.div);
+  } else if (act === 'reject') {
+    stats.rejected++;
+    logLine('AUDIT', 'operator', `REJECTED #${d.ticket} “${d.title}”`, d.div);
+    a.state = 'idle'; a.subtask = 'Stood down — request rejected'; a.timer = rand(12, 20); a.progress = 0; a.tasks = [];
+    agentLog(a, 'ERR', 'request rejected — task cancelled');
+    burst(a, 'REJECTED', '#ff5d6c', ['#ff5d6c', '#ffb3ba', '#ffffff']);
+  } else if (act === 'revise') {
+    stats.revised++;
+    const note = pick(REVISE_NOTES);
+    logLine('AUDIT', 'operator', `REVISION requested on #${d.ticket}: ${note}`, d.div);
+    setWorking(a, `Revising (${note}): ${d.title}`, rand(9, 15), false);
+    a.revisionOf = { tmpl: d.tmpl, rev: d.rev + 1 };
+    agentLog(a, 'INFO', `revision requested — ${note}`);
+    burst(a, 'REVISE', '#5cc8ff', ['#5cc8ff', '#c1ecff', '#ffffff']);
+  }
+  setTimeout(renderQueue, 280); renderTabs(); renderBadge(); renderConsoleFoot(); refreshModal(); updateLegend();
+}
+function kpiBump(div) {
+  const map = { content: 0, autonomous: 1, agency: 2, command: 3 };
+  const i = map[div], k = KPIS[i];
+  const add = LIVE ? 1 : div === 'content' ? randi(80, 260) : div === 'autonomous' ? randi(150, 520) : div === 'agency' ? (Math.random() < 0.6 ? 1 : 0) : randi(1, 3);
+  k.val = Math.min(k.goal, k.val + add); k.today += add; bumpKPI(i);
+}
+function bumpKPI(i) { renderKPIs(); const el = document.querySelectorAll('.kpi')[i]; if (el) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); } }
+
+/* ---------- UI: header ---------- */
+function cells(pct, n, extra) {
+  const on = Math.round(pct * n); let h = '';
+  for (let i = 0; i < n; i++) h += `<i class="${i < on ? 'on' : ''}"></i>`;
+  return `<div class="cells" ${extra || ''} role="img" aria-label="${Math.round(pct * 100)} percent">${h}</div>`;
+}
+function renderKPIs() {
+  setHTML($('#kpis'), KPIS.map(k => {
+    const D = DIVS[k.div], pct = clamp(k.val / k.goal, 0, 1);
+    return `<div class="kpi" style="--c:${D.color}"><div class="kpi-h"><span>${k.name}</span><b>${D.label}</b></div>
+      <div class="kpi-v"><strong>${k.f(k.val)}</strong><span>/ ${k.f(k.goal)}</span><em>▲ ${fmt(k.today)}${k.suffix || ''}</em></div>${cells(pct, 20)}</div>`;
+  }).join(''));
+}
+function renderTokens() {
+  const el = $('#tok'); const pct = TOK.used / TOK.budget;
+  const remain = Math.max(0, (TOK.resetAt - Date.now()) / 1000);
+  const proj = TOK.used + TOK.rate * remain, pp = proj / TOK.budget;
+  const fc = pp < 0.85 ? 'var(--green)' : pp < 1 ? 'var(--amber)' : 'var(--red)';
+  const d = Math.floor(remain / 86400), h = Math.floor(remain % 86400 / 3600), m = Math.floor(remain % 3600 / 60);
+  const usd = LIVE ? (TOK.usd || 0) : TOK.rate * 3600 * 4 / 1e6;
+  if (!el._built) {
+    el.innerHTML = `<div class="tok-h"><span>WEEKLY TOKEN USAGE</span><b id="tPct"></b></div>
+      <div class="tok-n"><strong id="tUsed"></strong><span id="tBud"></span><em id="tFc"></em></div>
+      <div id="tBar"></div>
+      <div class="tok-g">
+        <div><span>SESSIONS</span><b id="tSess"></b></div>
+        <div><span>BURN RATE</span><b id="tRate"></b></div>
+        <div><span>COST / HR</span><b id="tUsd"></b></div>
+        <div><span>RESETS IN</span><b id="tReset"></b></div>
+        <canvas id="spark" width="120" height="24" aria-label="Burn rate history"></canvas>
+      </div>
+      <span class="local">● LOCAL TELEMETRY · 0 EXTRA API CALLS</span>`;
+    el._built = true;
+  }
+  $('#tPct').textContent = OBS ? AGENTS.length + ' AGENTS · ' + new Set(AGENTS.map(a => a.div)).size + ' ROOMS' : (pct * 100).toFixed(1) + '% USED';
+  $('#tUsed').textContent = fmt(TOK.used);
+  $('#tBud').textContent = OBS ? 'tokens observed since the bridge started' : '/ ' + fmt(TOK.budget / 1e6) + 'M budget';
+  const fcEl = $('#tFc'); fcEl.style.color = fc; fcEl.textContent = OBS ? '' : 'FORECAST ' + (pp * 100).toFixed(0) + '%';
+  setHTML($('#tBar'), cells(pct, 36).replace('<div class="cells"', '<div class="cells" style="--c:' + (pct < .75 ? 'var(--green)' : pct < .9 ? 'var(--amber)' : 'var(--red)') + '"'));
+  $('#tSess').textContent = TOK.sessions + ' / ' + AGENTS.length;
+  $('#tRate').textContent = fmt(TOK.rate) + ' tok/s';
+  $('#tUsd').textContent = OBS ? '—' : '$' + usd.toFixed(2);
+  $('#tReset').textContent = OBS ? '—' : `${d}d ${pad2(h)}h ${pad2(m)}m`;
+}
+function drawSpark() {
+  const c = $('#spark'); if (!c) return; const x = c.getContext('2d'); x.clearRect(0, 0, c.width, c.height);
+  const h = TOK.hist, mx = Math.max(1, ...h) * 1.1, bw = c.width / 60;
+  h.forEach((v, i) => { const bh = Math.max(1, Math.round(v / mx * (c.height - 2))); x.fillStyle = i === h.length - 1 ? '#fff' : '#ffc83d'; x.fillRect(Math.floor(i * bw), c.height - bh, Math.ceil(bw) - 1, bh); });
+}
+function updateLegend() {
+  const n = { working: 0, waiting: 0, idle: 0 }; AGENTS.forEach(a => n[a.state]++);
+  setHTML($('#legend'), `<span><i class="dot" style="background:var(--green)"></i>Working <b>${n.working}</b></span><span><i class="dot" style="background:var(--amber)"></i>Needs approval <b>${n.waiting}</b></span><span><i class="dot" style="background:#8a86b8"></i>Idle <b>${n.idle}</b></span>`);
+  TOK.sessions = n.working + n.waiting;
+}
+
+/* ---------- UI: decision console ---------- */
+const ageStr = d => { const s = Math.floor((Date.now() - d.created) / 1000); return s < 60 ? s + 's' : Math.floor(s / 60) + 'm ' + pad2(s % 60) + 's'; };
+const visibleDecisions = () => OBS && obsSolo ? decisions.filter(d => d.root === obsSolo) : decisions;
+const sortDecisions = (a, b) => (a.held - b.held) || (a.prio - b.prio) || (b.blocks - a.blocks) || (a.created - b.created);
+function cardHTML(d) {
+  const D = DIVS[d.div], a = AG[d.agent] || { id: d.agent, name: d.who, title: d.who };
+  if (d.observed) return `<article class="item p1${d.fresh ? ' fresh' : ''}" data-id="${d.id}" style="--c:${D.color}">
+    <div class="i-top"><span class="pr">!</span><span class="dv">${esc((d.project || D.tab).toUpperCase())}</span><span class="age" data-age="${d.id}">${ageStr(d)}</span></div>
+    <h3>${esc(d.title)}</h3>
+    <p class="who"><button class="loc" data-loc="${a.id}" title="Locate on the office floor">◎ ${esc(a.title || a.name)}</button></p>
+    <p class="why">${esc(d.detail)}</p>
+    ${d.perm ? `<pre class="fulltxt">${esc(d.full)}</pre><div class="acts" style="grid-template-columns:repeat(${d.sugg ? 3 : 2},1fr)"><button class="a ok" data-act="allow">✔ Allow</button>${d.sugg ? '<button class="a rv" data-act="always" title="Allow and remember the rule Claude Code suggested">★ Always</button>' : ''}<button class="a no" data-act="deny">✖ Deny</button></div>`
+      : `<p class="why" style="color:var(--dim)">Answer it in that Claude Code session (install the hook to answer from here).</p>`}</article>`;
+  return `<article class="item p${d.prio}${d.held ? ' held' : ''}${d.fresh ? ' fresh' : ''}" data-id="${d.id}" style="--c:${D.color}">
+    <div class="i-top"><span class="pr" title="Priority ${d.prio}">P${d.prio}</span><span class="dv">${D.tab.toUpperCase()}</span><span class="tk">#${d.ticket}</span>${d.rev ? `<span class="rv">REV ${d.rev + 1}</span>` : ''}${d.held ? '<span class="hd">HELD</span>' : ''}<span class="age" data-age="${d.id}">${ageStr(d)}</span></div>
+    <h3>${esc(d.title)}</h3>
+    <p class="who"><button class="loc" data-loc="${a.id}" title="Locate on the office floor">◎ ${esc(a.name)}</button> · blocks ${d.blocks} task${d.blocks > 1 ? 's' : ''} · ~${d.tok}k tokens</p>
+    <p class="why">${esc(d.detail)}</p>
+    <div class="acts">
+      <button class="a ok" data-act="approve">✔ Approve</button>
+      <button class="a no" data-act="reject">✖ Reject</button>
+      <button class="a rv" data-act="revise">↺ Request Revision</button>
+      <button class="a hd" data-act="hold">${d.held ? '▶ Release Hold' : '❚❚ Keep Open'}</button>
+    </div></article>`;
+}
+function renderQueue() {
+  const list = visibleDecisions().filter(d => filter === 'all' || (!d.offpage && d.div === filter)).sort(sortDecisions);
+  const el = $('#queue'); const top = el.scrollTop;
+  el.innerHTML = list.length ? list.map(cardHTML).join('') :
+    `<div class="empty"><b>✔ ALL CLEAR</b>No decisions waiting${filter === 'all' ? '' : ' in ' + DIVS[filter].tab}.<br>Agents are carrying on autonomously.</div>`;
+  el.scrollTop = top; decisions.forEach(d => d.fresh = false);
+}
+function renderTabs() {
+  const tabs = [['all', OBS && obsSolo ? 'This project' : 'All', '#ffc83d'], ...(OBS && obsSolo ? [] : DKEYS.map(k => [k, DIVS[k].tab, DIVS[k].color]))];
+  setHTML($('#tabs'), tabs.map(([k, n, c]) => {
+    const vis = visibleDecisions(), cnt = k === 'all' ? vis.length : vis.filter(d => !d.offpage && d.div === k).length;
+    return `<button class="tab" role="tab" aria-selected="${filter === k}" data-tab="${k}" style="--c:${c}">${n}<em>${cnt}</em></button>`;
+  }).join(''));
+}
+function renderBadge() {
+  const n = decisions.length, c = decisions.filter(d => d.prio === 1 && !d.held).length, b = $('#badge');
+  b.textContent = c ? `${n} PENDING · ${c} CRITICAL` : `${n} PENDING`; b.classList.toggle('crit', c > 0);
+  document.title = (n ? `(${n}) ` : '') + 'Pixel Office · AI OS & Decision Console';
+}
+function renderConsoleFoot() {
+  if (OBS) { const n = { working: 0, waiting: 0, idle: 0 }; AGENTS.forEach(a => n[a.state]++); setHTML($('#conf'), `<div class="ok"><b>${n.working}</b>working</div><div class="rv"><b>${n.waiting}</b>need you</div><div><b>${n.idle}</b>idle</div><div><b>${new Set(AGENTS.map(a => a.root)).size}</b>projects</div>`); return; }
+  const avg = stats.respN ? Math.round(stats.respTotal / stats.respN) + 's' : '—';
+  setHTML($('#conf'), `<div class="ok"><b>${stats.approved}</b>approved</div><div class="no"><b>${stats.rejected}</b>rejected</div><div class="rv"><b>${stats.revised}</b>revisions</div><div><b>${avg}</b>avg response</div>`);
+}
+function updateAges() {
+  document.querySelectorAll('[data-age]').forEach(el => { const d = decisions.find(x => x.id === el.dataset.age); if (d) el.textContent = ageStr(d); });
+  let ch = false;
+  decisions.forEach(d => {
+    if (!d.held && !d.esc && d.prio > 1 && (Date.now() - d.created) > 150000) {
+      d.prio--; d.esc = true; ch = true;
+      logLine('WARN', 'Sentinel', `ESCALATED #${d.ticket} to P${d.prio} — waiting ${ageStr(d)}`, d.div);
+    }
+  });
+  if (ch) { renderQueue(); renderBadge(); }
+}
+$('#queue').addEventListener('click', e => {
+  const act = e.target.closest('[data-act]'), loc = e.target.closest('[data-loc]');
+  const card = e.target.closest('.item');
+  if (act && card) resolve(card.dataset.id, act.dataset.act);
+  else if (loc) { const id = loc.dataset.loc; if (OBS && !AG[id] && lastOffice) { const it = [...lastOffice.sessions, ...lastOffice.subs].find(x => x.id === id); if (it) { obsPage = Math.floor(obsOrder.indexOf(it.root) / PAGE); applyOffice(lastOffice); } } if (AG[id]) focusAgent(id); }
+});
+$('#queue').addEventListener('mouseover', e => { const c = e.target.closest('.item'); hoverFromQueue = c ? (AG[(decisions.find(d => d.id === c.dataset.id) || {}).agent] || {}).id || null : null; });
+$('#queue').addEventListener('mouseleave', () => hoverFromQueue = null);
+$('#tabs').addEventListener('click', e => { const t = e.target.closest('[data-tab]'); if (t) { filter = t.dataset.tab; renderTabs(); renderQueue(); } });
+function focusAgent(id) {
+  const a = AG[id]; a.focusUntil = performance.now() / 1000 + 3.2;
+  const wrap = $('#stage'); const rect = cv.getBoundingClientRect(), sr = wrap.getBoundingClientRect();
+  const px = rect.left - sr.left + wrap.scrollLeft + a.ax * zoom, py = rect.top - sr.top + wrap.scrollTop + (a.ay - 40) * zoom;
+  wrap.scrollTo({ left: px - sr.width / 2, top: py - sr.height / 2, behavior: 'smooth' });
+}
+
+/* ---------- UI: log controls ---------- */
+$('#logPause').addEventListener('click', e => {
+  logPaused = !logPaused; e.target.textContent = logPaused ? 'RESUME' : 'PAUSE';
+  if (!logPaused) { logQueue.splice(0).forEach(appendLog); }
+});
+$('#logClear').addEventListener('click', () => { $('#log').innerHTML = ''; logBuf.length = 0; logLine('SYS', 'system', 'log cleared by operator'); });
+
+/* ---------- UI: agent modal ---------- */
+let modalAgent = null;
+function openModal(id) {
+  modalAgent = id; const a = AG[id], D = DIVS[a.div];
+  $('#dialog').style.setProperty('--c', D.color);
+  $('#modal').classList.add('on'); $('#modal').setAttribute('aria-hidden', 'false');
+  ['mNow', 'mSpecs', 'mTasks', 'mDec'].forEach(i => $('#' + i)._h = null);
+  refreshModal(true); $('#mClose').focus();
+}
+function closeModal() { modalAgent = null; $('#modal').classList.remove('on'); $('#modal').setAttribute('aria-hidden', 'true'); }
+function refreshModal(first) {
+  if (!modalAgent) return; if (!AG[modalAgent]) { if (OBS) closeModal(); return; } const a = AG[modalAgent], D = DIVS[a.div], s = a.stats;
+  const state = { working: 'Working', waiting: 'Needs approval', idle: 'Idle' }[a.state];
+  $('#mTitle').innerHTML = `${a.head ? '<span class="crown" title="Department head"></span>' : ''}${esc(a.title || a.name)} <span class="chip ${a.state}">${state}</span>`;
+  $('#mSub').textContent = OBS ? `${a.role} · project ${D.tab}${a.head ? ' · main session' : ''} · ${a.model}` : `${a.role} · ${D.tab} division${a.head ? ' · Department Head' : ''} · ${a.model}`;
+  if (first || a._pState !== a.state) { drawPortrait(a); a._pState = a.state; }
+  setHTML($('#mNow'), `<div class="now">${esc(a.subtask)}</div><div class="bar" style="--g:${D.color}"><i style="width:${Math.round(a.progress)}%;background:${D.color}"></i></div><small style="color:var(--dim)">${Math.round(a.progress)}% · ${a.state === 'working' ? ((LIVE || OBS) ? 'running…' : 'ETA ' + Math.max(0, Math.ceil(a.timer)) + 's') : a.state === 'waiting' ? 'blocked on operator' : ((LIVE || OBS) ? 'idle' : 'next task in ~' + Math.max(0, Math.ceil(a.timer)) + 's')}</small>`);
+  setHTML($('#mSpecs'), (a.specs || [
+    ['Tasks done', fmt(s.done)], ['Success rate', s.success.toFixed(1) + '%'], ['Avg latency', s.latency.toFixed(1) + 's'],
+    ['Tokens today', (s.tokens / 1000).toFixed(0) + 'k'], ['Context used', s.ctx.toFixed(0) + '%'], ['Errors (24h)', s.errors],
+    ['Queue depth', a.tasks.filter(t => t.kind === 'queued').length], ['Uptime', s.uptime.toFixed(1) + 'h'], ['Model', a.model]
+  ]).map(([k, v]) => `<div><b>${v}</b><span>${k}</span></div>`).join(''));
+  setHTML($('#mTasks'), (a.tasks.length ? a.tasks : [{ id: '—', title: 'No active tasks', kind: 'queued' }]).map((t, i) =>
+    `<li><span>${esc(t.title)}</span><small>${t.id === '—' ? '' : '#' + t.id} · ${i === 0 && a.tasks.length ? a.state : 'queued'}</small>${i === 0 && a.tasks.length ? `<div class="bar"><i style="width:${Math.round(a.progress)}%;background:${D.color}"></i></div>` : ''}</li>`).join(''));
+  const d = decisions.find(x => x.id === a.pending);
+  $('#mDecSec').hidden = !d;
+  setHTML($('#mDec'), d ? `<div class="dec item p${d.prio}${d.held ? ' held' : ''}" data-id="${d.id}" style="--c:${D.color};border:0;border-left:5px solid ${D.color};padding:2px 0 2px 10px;background:none;max-height:none">
+      <div class="i-top"><span class="pr">P${d.prio}</span><span class="tk">#${d.ticket}</span>${d.held ? '<span class="hd">HELD</span>' : ''}<span class="age">${ageStr(d)}</span></div>
+      <h3>${esc(d.title)}</h3>${d.full ? `<pre class="fulltxt">${esc(d.full)}</pre>` : `<p class="why">${esc(d.detail)}</p>`}
+      <div class="acts"><button class="a ok" data-act="approve">✔ Approve</button><button class="a no" data-act="reject">✖ Reject</button><button class="a rv" data-act="revise">↺ Request Revision</button><button class="a hd" data-act="hold">${d.held ? '▶ Release' : '❚❚ Keep Open'}</button></div></div>` : '');
+  // live log: append only entries newer than the last one rendered (seq is monotonic)
+  const ml = $('#mLog'), stick = first || ml.scrollHeight - ml.scrollTop - ml.clientHeight < 40;
+  if (first) { ml.innerHTML = ''; ml._seq = 0; }
+  const fresh = a.log.filter(l => l.seq > ml._seq);
+  if (fresh.length) {
+    ml.insertAdjacentHTML('beforeend', fresh.map(lineHTML).join(''));
+    ml._seq = fresh[fresh.length - 1].seq;
+    while (ml.childElementCount > 80) ml.firstElementChild.remove();
+  }
+  if (stick) ml.scrollTop = ml.scrollHeight;
+}
+$('#mDec').addEventListener('click', e => { const b = e.target.closest('[data-act]'); const c = e.target.closest('[data-id]'); if (b && c) resolve(c.dataset.id, b.dataset.act); });
+$('#mClose').addEventListener('click', closeModal);
+$('#modal').addEventListener('mousedown', e => { if (e.target === $('#modal')) closeModal(); });
+addEventListener('keydown', e => { if (e.key === 'Escape' && modalAgent) closeModal(); });
+function drawPortrait(a) {
+  const c = $('#mPortrait'), x = c.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, c.width, c.height);
+  x.imageSmoothingEnabled = false; x.setTransform(3, 0, 0, 3, 0, 0);
+  const pose = a.state === 'waiting' ? 'wait' : a.state === 'idle' ? 'idle' : 'work';
+  drawAvatar(x, 25, 64, a, performance.now() / 1000, pose, true);
+  if (a.head) drawCrown(x, 25, 64, 0);
+}
+
+/* =====================================================================
+   RENDERING — isometric canvas
+   ===================================================================== */
+function roomAt(x, y) { for (const k of DKEYS) { const D = DIVS[k]; if (x >= D.ox && x < D.ox + RW && y >= D.oy && y < D.oy + RW) return k; } return null; }
+
+/* ---- 5x7 bitmap font ---- */
+const GL = {};
+(function () {
+  const G = {
+    A: '01110/10001/10001/11111/10001/10001/10001', B: '11110/10001/10001/11110/10001/10001/11110', C: '01110/10001/10000/10000/10000/10001/01110',
+    D: '11110/10001/10001/10001/10001/10001/11110', E: '11111/10000/10000/11110/10000/10000/11111', F: '11111/10000/10000/11110/10000/10000/10000',
+    G: '01110/10001/10000/10111/10001/10001/01111', H: '10001/10001/10001/11111/10001/10001/10001', I: '01110/00100/00100/00100/00100/00100/01110',
+    J: '00111/00010/00010/00010/00010/10010/01100', K: '10001/10010/10100/11000/10100/10010/10001', L: '10000/10000/10000/10000/10000/10000/11111',
+    M: '10001/11011/10101/10101/10001/10001/10001', N: '10001/11001/10101/10011/10001/10001/10001', O: '01110/10001/10001/10001/10001/10001/01110',
+    P: '11110/10001/10001/11110/10000/10000/10000', Q: '01110/10001/10001/10001/10101/10010/01101', R: '11110/10001/10001/11110/10100/10010/10001',
+    S: '01111/10000/10000/01110/00001/00001/11110', T: '11111/00100/00100/00100/00100/00100/00100', U: '10001/10001/10001/10001/10001/10001/01110',
+    V: '10001/10001/10001/10001/10001/01010/00100', W: '10001/10001/10001/10101/10101/11011/10001', X: '10001/10001/01010/00100/01010/10001/10001',
+    Y: '10001/10001/01010/00100/00100/00100/00100', Z: '11111/00001/00010/00100/01000/10000/11111',
+    0: '01110/10001/10011/10101/11001/10001/01110', 1: '00100/01100/00100/00100/00100/00100/01110', 2: '01110/10001/00001/00010/00100/01000/11111',
+    3: '11110/00001/00001/01110/00001/00001/11110', 4: '00010/00110/01010/10010/11111/00010/00010', 5: '11111/10000/11110/00001/00001/10001/01110',
+    6: '00110/01000/10000/11110/10001/10001/01110', 7: '11111/00001/00010/00100/01000/01000/01000', 8: '01110/10001/10001/01110/10001/10001/01110',
+    9: '01110/10001/10001/01111/00001/00010/01100',
+    '-': '00000/00000/00000/11111/00000/00000/00000', '#': '01010/01010/11111/01010/11111/01010/01010', '.': '00000/00000/00000/00000/00000/01100/01100',
+    ':': '00000/01100/01100/00000/01100/01100/00000', '!': '00100/00100/00100/00100/00100/00000/00100', '?': '01110/10001/00001/00010/00100/00000/00100',
+    '/': '00001/00001/00010/00100/01000/10000/10000', '+': '00000/00100/00100/11111/00100/00100/00000', ' ': '00000/00000/00000/00000/00000/00000/00000',
+    '✔': '00001/00010/00010/10100/10100/01000/01000'
+  };
+  for (const k in G) GL[k] = G[k].split('/');
+})();
+const tcache = new Map();
+function textSprite(str, color, outline) {
+  const key = str + '|' + color + '|' + (outline || ''); let e = tcache.get(key); if (e) return e;
+  str = str.toUpperCase(); const n = str.length, o = outline ? 1 : 0;
+  const cv = document.createElement('canvas'); cv.width = n * 6 - 1 + o * 2; cv.height = 7 + o * 2; const c = cv.getContext('2d');
+  const draw = (dx, dy, col) => {
+    c.fillStyle = col;
+    for (let i = 0; i < n; i++) { const g = GL[str[i]] || GL['?']; for (let r = 0; r < 7; r++) for (let q = 0; q < 5; q++) if (g[r][q] === '1') c.fillRect(o + i * 6 + q + dx, o + r + dy, 1, 1); }
+  };
+  if (outline) [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, 1], [-1, 1], [1, -1]].forEach(([dx, dy]) => draw(dx, dy, outline));
+  draw(0, 0, color);
+  e = { cv, w: cv.width, h: cv.height }; tcache.set(key, e); return e;
+}
+function drawText(c, str, x, y, color, scale = 1, outline) { const s = textSprite(str, color, outline); c.drawImage(s.cv, Math.round(x), Math.round(y), s.w * scale, s.h * scale); return s.w * scale; }
+
+/* ---- geometry helpers ---- */
+function poly(c, pts, fill, stroke, lw = 1) {
+  c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]); c.closePath();
+  if (fill) { c.fillStyle = fill; c.fill(); } if (stroke) { c.strokeStyle = stroke; c.lineWidth = lw; c.stroke(); }
+}
+const tile = (c, x, y, z, fill, stroke) => poly(c, [iso(x, y, z), iso(x + 1, y, z), iso(x + 1, y + 1, z), iso(x, y + 1, z)], fill, stroke);
+function box(c, x, y, w, d, z0, h, top, lf, rt, ol = true) {
+  const z1 = z0 + h;
+  poly(c, [iso(x, y + d, z0), iso(x + w, y + d, z0), iso(x + w, y + d, z1), iso(x, y + d, z1)], lf, ol ? shade(lf, -.3) : null);
+  poly(c, [iso(x + w, y, z0), iso(x + w, y + d, z0), iso(x + w, y + d, z1), iso(x + w, y, z1)], rt, ol ? shade(rt, -.3) : null);
+  poly(c, [iso(x, y, z1), iso(x + w, y, z1), iso(x + w, y + d, z1), iso(x, y + d, z1)], top, ol ? shade(top, -.25) : null);
+}
+const R = (c, x, y, w, h, col) => { c.fillStyle = col; c.fillRect(x, y, w, h); };
+function shadow(c, x, y, rx, ry, a = .24) { c.fillStyle = `rgba(0,0,0,${a})`; c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, 6.2832); c.fill(); }
+const wallRq = (ox, oy, xa, xb, za, zb) => [iso(ox + xa, oy, zb), iso(ox + xb, oy, zb), iso(ox + xb, oy, za), iso(ox + xa, oy, za)];
+const wallLq = (ox, oy, ya, yb, za, zb) => [iso(ox, oy + ya, zb), iso(ox, oy + yb, zb), iso(ox, oy + yb, za), iso(ox, oy + ya, za)];
+
+/* ---- canvas setup ---- */
+const cv = $('#cv'), ctx = cv.getContext('2d');
+const stat = document.createElement('canvas'), sctx = stat.getContext('2d');
+let K = 1, zoom = 1, fitMode = true; const DPR = () => window.devicePixelRatio || 1;
+
+function buildStatic() {
+  const c = sctx; c.setTransform(K, 0, 0, K, 0, 0); c.imageSmoothingEnabled = false; c.clearRect(0, 0, W0, H0);
+  const solo = soloKey();
+  { const sk = window.SKINS[window.SKINID]; if (sk && sk.custom) { sk.static(c, solo); return; } }
+  if (solo) {                                   // one project open: just its room on a small slab
+    poly(c, [iso(0, RW, 0), iso(RW, RW, 0), iso(RW, RW, -SLAB), iso(0, RW, -SLAB)], '#2e2558', '#150f30');
+    poly(c, [iso(RW, 0, 0), iso(RW, RW, 0), iso(RW, RW, -SLAB), iso(RW, 0, -SLAB)], '#201a43', '#150f30');
+    const D = DIVS[solo];
+    for (let y = 0; y < RW; y++) for (let x = 0; x < RW; x++) { const col = ((x + y) & 1) ? D.floorB : D.floorA; tile(c, D.ox + x, D.oy + y, 0, col, shade(col, -.16)); }
+    for (let ry = 1; ry <= 5; ry++) for (let rx = 1; rx <= 6; rx++) {
+      const ring = rx === 1 || rx === 6 || ry === 1 || ry === 5; let col = ring ? D.rugBd : (((rx + ry) & 1) ? D.rugIn : shade(D.rugIn, -.1));
+      if (ring) col = ((rx + ry) & 1) ? D.rugBd : shade(D.rugBd, -.12); tile(c, D.ox + rx, D.oy + ry, 0, col, shade(col, -.25));
+    }
+    drawWalls(c, solo); return;
+  }
+  // slab
+  poly(c, [iso(0, NT, 0), iso(NT, NT, 0), iso(NT, NT, -SLAB), iso(0, NT, -SLAB)], '#2e2558', '#150f30');
+  poly(c, [iso(NT, 0, 0), iso(NT, NT, 0), iso(NT, NT, -SLAB), iso(NT, 0, -SLAB)], '#201a43', '#150f30');
+  // floors
+  for (let y = 0; y < NT; y++) for (let x = 0; x < NT; x++) {
+    const rk = roomAt(x, y); let col;
+    if (rk) col = ((x + y) & 1) ? DIVS[rk].floorB : DIVS[rk].floorA; else col = ((x + y) & 1) ? '#3b4164' : '#343a5b';
+    tile(c, x, y, 0, col, shade(col, -.16));
+  }
+  // rugs
+  for (const k of DKEYS) {
+    const D = DIVS[k];
+    for (let ry = 1; ry <= 5; ry++) for (let rx = 1; rx <= 6; rx++) {
+      const ring = rx === 1 || rx === 6 || ry === 1 || ry === 5;
+      let col = ring ? D.rugBd : (((rx + ry) & 1) ? D.rugIn : shade(D.rugIn, -.1));
+      if (ring) col = ((rx + ry) & 1) ? D.rugBd : shade(D.rugBd, -.12);
+      tile(c, D.ox + rx, D.oy + ry, 0, col, shade(col, -.25));
+    }
+  }
+  // hub pad + hallway centre dashes
+  c.save(); c.setLineDash([5, 5]); c.strokeStyle = '#6b73a3'; c.lineWidth = 1;
+  [[8, 0, 8, 7], [8, 9, 8, 16], [0, 8, 7, 8], [9, 8, 16, 8]].forEach(([x0, y0, x1, y1]) => { const a = iso(x0, y0), b = iso(x1, y1); c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke(); });
+  c.restore();
+  for (let y = 7; y <= 8; y++) for (let x = 7; x <= 8; x++) tile(c, x, y, 0, ((x + y) & 1) ? '#1f2d57' : '#1a2750', '#2d4382');
+  // walls
+  for (const k of DKEYS) drawWalls(c, k);
+}
+
+function drawWalls(c, k) {
+  const D = DIVS[k], ox = D.ox, oy = D.oy, W = RW, H = WALL_H;
+  // base faces
+  poly(c, [iso(ox, oy, 0), iso(ox, oy + W, 0), iso(ox, oy + W, H), iso(ox, oy, H)], D.wallL, shade(D.wallL, -.35));
+  poly(c, [iso(ox, oy, 0), iso(ox + W, oy, 0), iso(ox + W, oy, H), iso(ox, oy, H)], D.wallR, shade(D.wallR, -.35));
+  // baseboards + caps
+  poly(c, wallLq(ox, oy, 0, W, 0, 5), shade(D.wallL, -.35));
+  poly(c, wallRq(ox, oy, 0, W, 0, 5), shade(D.wallR, -.35));
+  poly(c, wallLq(ox, oy, 0, W, H - 4, H), shade(D.wallL, .3));
+  poly(c, wallRq(ox, oy, 0, W, H - 4, H), shade(D.wallR, .3));
+  // right wall: windows + plaque
+  const win = (xa, xb) => {
+    poly(c, wallRq(ox, oy, xa, xb, 17, 40), '#e9e4ff', '#2a2250');
+    const q = wallRq(ox, oy, xa + .08, xb - .08, 19, 38), g = c.createLinearGradient(0, q[0][1], 0, q[3][1]);
+    g.addColorStop(0, '#1b2a73'); g.addColorStop(1, '#7a5cd6'); poly(c, q, g);
+    // stars + moon
+    c.fillStyle = '#fff'; for (let i = 0; i < 4; i++) { const p = iso(ox + xa + .2 + i * (xb - xa - .3) / 4, oy, 30 + (i * 5 % 7)); c.fillRect(Math.round(p[0]), Math.round(p[1]), 1, 1); }
+    // mullions
+    const m1 = iso(ox + (xa + xb) / 2, oy, 19), m2 = iso(ox + (xa + xb) / 2, oy, 38); c.strokeStyle = '#e9e4ff'; c.lineWidth = 2; c.beginPath(); c.moveTo(m1[0], m1[1]); c.lineTo(m2[0], m2[1]); c.stroke();
+    const h1 = iso(ox + xa, oy, 28.5), h2 = iso(ox + xb, oy, 28.5); c.beginPath(); c.moveTo(h1[0], h1[1]); c.lineTo(h2[0], h2[1]); c.stroke();
+  };
+  win(.35, 1.85); win(5.15, 6.65);
+  poly(c, wallRq(ox, oy, 2.15, 4.85, 20, 38), shade(D.color, -.45), '#10102a', 1);
+  poly(c, wallRq(ox, oy, 2.22, 4.78, 22, 36), shade(D.color, -.62));
+  const sp = textSprite(D.label, '#ffffff', shade(D.color, -.7)), psc = sp.w * 2 <= 2.7 * 32 ? 2 : 1, tw = sp.w * psc, span = 2.7 * 32;
+  const p0 = iso(ox + 2.15 + (2.7 - tw / 32) / 2, oy, 35);
+  c.save(); c.setTransform(K, K * .5, 0, K, p0[0] * K, p0[1] * K); c.imageSmoothingEnabled = false; c.drawImage(sp.cv, 0, 0, sp.w * psc, sp.h * psc); c.restore();
+  // left wall: clock + poster
+  poly(c, wallLq(ox, oy, .5, 1.5, 24, 38), '#e9e4ff', '#2a2250');
+  poly(c, wallLq(ox, oy, .58, 1.42, 26, 36), '#fff');
+  { const p = iso(ox, oy + 1, 31); c.strokeStyle = '#2a2250'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(p[0], p[1]); c.lineTo(p[0], p[1] - 4); c.moveTo(p[0], p[1]); c.lineTo(p[0] - 3, p[1] + 1); c.stroke(); }
+  const py0 = k === 'autonomous' ? 5.1 : 4.3;
+  poly(c, wallLq(ox, oy, py0, py0 + 1.9, 14, 38), '#f6f1e0', '#2a2250');
+  for (let i = 0; i < 4; i++) poly(c, wallLq(ox, oy, py0 + .22 + i * .4, py0 + .22 + i * .4 + .26, 17, 17 + 5 + i * 5), i === 3 ? '#f5c542' : D.color, shade(D.color, -.4));
+  // end caps (suggest thickness)
+  poly(c, [iso(ox + W, oy, 0), iso(ox + W + .12, oy + .0, 0), iso(ox + W + .12, oy, H), iso(ox + W, oy, H)], shade(D.wallR, -.25));
+  poly(c, [iso(ox, oy + W, 0), iso(ox, oy + W + .12, 0), iso(ox, oy + W + .12, H), iso(ox, oy + W, H)], shade(D.wallL, -.25));
+}
+
+/* ---- decor ---- */
+const DECOR = [];
+(function () {
+  const add = (k, type, rx, ry) => { const D = DIVS[k]; DECOR.push({ type, x: D.ox + rx, y: D.oy + ry, room: k, ph: Math.random() * 6 }); };
+  const sets = {
+    command:    [['plant', 0, 0], ['cooler', 1, 0], ['plant', 6, 0], ['shelf', 0, 2], ['shelf', 0, 3], ['plant', 0, 6], ['plant', 6, 6]],
+    content:    [['plant', 0, 0], ['lamp', 1, 0], ['plant', 6, 0], ['shelf', 0, 2], ['shelf', 0, 3], ['plant', 0, 6], ['plant', 6, 6]],
+    autonomous: [['plant', 0, 0], ['server', 0, 1], ['server', 0, 2], ['server', 0, 3], ['server', 0, 4], ['plant', 6, 0], ['plant', 0, 6], ['beanbag', 5, 4], ['plant', 6, 6]],
+    agency:     [['plant', 0, 0], ['printer', 1, 0], ['plant', 6, 0], ['shelf', 0, 2], ['shelf', 0, 3], ['plant', 0, 6], ['plant', 6, 6]]
+  };
+  for (const k in sets) sets[k].forEach(s => add(k, ...s));
+})();
+const BOOKS = ['#e05a5a', '#4aa3df', '#f2c14e', '#6fcf97', '#b57bff', '#ff8fb3', '#ffffff'];
+const DRAW_DECOR = {
+  plant(c, o, t) {
+    const [cx, cy] = iso(o.x + .5, o.y + .5, 0), x = Math.round(cx), y = Math.round(cy), sw = Math.round(Math.sin(t * 1.4 + o.ph));
+    shadow(c, x, y, 11, 5);
+    R(c, x - 6, y - 9, 12, 9, '#9c5a34'); R(c, x - 7, y - 11, 14, 3, '#c27a4a'); R(c, x - 6, y - 8, 2, 7, '#b66d40');
+    R(c, x - 9, y - 21 + sw, 6, 7, '#2f9e4f'); R(c, x + 3, y - 22 + sw, 6, 7, '#2f9e4f'); R(c, x - 5, y - 28 + sw, 10, 9, '#4fd374');
+    R(c, x - 2, y - 33 + sw, 4, 7, '#6ff08f'); R(c, x - 11, y - 15, 5, 5, '#3fbf61'); R(c, x + 6, y - 16, 5, 5, '#3fbf61'); R(c, x - 1, y - 20, 2, 9, '#2a7a3f');
+  },
+  shelf(c, o) {
+    box(c, o.x + .02, o.y + .02, .5, .96, 0, 42, '#8a5a38', '#6a4328', '#7b4f31');
+    const X = o.x + .52;
+    poly(c, [iso(X, o.y + .06, 3), iso(X, o.y + .94, 3), iso(X, o.y + .94, 39), iso(X, o.y + .06, 39)], '#3b2616');
+    for (let r = 0; r < 3; r++) {
+      const z0 = 5 + r * 12;
+      for (let b = 0; b < 6; b++) {
+        const y0 = o.y + .1 + b * .13, h = 7 + ((b * 5 + r * 3 + o.y) % 3);
+        poly(c, [iso(X, y0, z0), iso(X, y0 + .1, z0), iso(X, y0 + .1, z0 + h), iso(X, y0, z0 + h)], BOOKS[(b * 3 + r * 2 + (o.y | 0)) % BOOKS.length]);
+      }
+      poly(c, [iso(X, o.y + .04, z0 - 2), iso(X, o.y + .96, z0 - 2), iso(X, o.y + .96, z0), iso(X, o.y + .04, z0)], '#a8734a');
+    }
+  },
+  server(c, o, t) {
+    box(c, o.x + .02, o.y + .03, .62, .94, 0, 44, '#30365a', '#222745', '#282e50');
+    const X = o.x + .64;
+    for (let i = 0; i < 5; i++) {
+      const z = 4 + i * 8;
+      poly(c, [iso(X, o.y + .1, z), iso(X, o.y + .9, z), iso(X, o.y + .9, z + 5.5), iso(X, o.y + .1, z + 5.5)], '#10132a', '#4a5290');
+      for (let j = 0; j < 3; j++) {
+        const on = Math.floor(t * (2 + j) + i * 1.7 + j * 2.3 + o.y) % 3;
+        const col = on === 0 ? '#5be37d' : on === 1 ? '#ffc83d' : '#2b3a4a', yy = o.y + .2 + j * .12;
+        poly(c, [iso(X, yy, z + 1.5), iso(X, yy + .06, z + 1.5), iso(X, yy + .06, z + 3.5), iso(X, yy, z + 3.5)], col);
+      }
+    }
+  },
+  cooler(c, o, t) {
+    const [cx, cy] = iso(o.x + .5, o.y + .5, 0); shadow(c, cx, cy, 14, 6);
+    box(c, o.x + .22, o.y + .22, .56, .56, 0, 22, '#e6ecf7', '#c0c9de', '#a4aec8');
+    box(c, o.x + .3, o.y + .3, .4, .4, 22, 14, '#9fd8ff', '#6fb8ec', '#5aa3d8');
+    R(c, Math.round(cx) - 4, Math.round(cy) - 14, 3, 2, '#3a7bd5'); R(c, Math.round(cx) + 1, Math.round(cy) - 14, 3, 2, '#ff5d6c');
+    const f = Math.floor(t * 1.5) % 6; R(c, Math.round(cx) - 3 + (f % 3), Math.round(cy) - 36 + f * 2, 2, 2, '#e8f7ff');
+  },
+  lamp(c, o, t) {
+    const [cx, cy] = iso(o.x + .5, o.y + .5, 0), x = Math.round(cx), y = Math.round(cy);
+    shadow(c, x, y, 12, 5); R(c, x - 1, y - 40, 3, 40, '#474a6a'); R(c, x - 8, y - 3, 6, 3, '#474a6a'); R(c, x + 3, y - 3, 6, 3, '#474a6a');
+    c.save(); c.globalCompositeOperation = 'lighter'; const g = c.createRadialGradient(x, y - 50, 4, x, y - 50, 34); g.addColorStop(0, 'rgba(255,200,230,.45)'); g.addColorStop(1, 'rgba(255,200,230,0)');
+    c.fillStyle = g; c.fillRect(x - 40, y - 90, 80, 80); c.restore();
+    c.strokeStyle = '#fff'; c.lineWidth = 3; c.beginPath(); c.arc(x, y - 50, 10, 0, 6.2832); c.stroke();
+    c.strokeStyle = '#ff9ccf'; c.lineWidth = 1; c.beginPath(); c.arc(x, y - 50, 7, 0, 6.2832); c.stroke();
+  },
+  printer(c, o, t) {
+    box(c, o.x + .1, o.y + .15, .8, .7, 0, 14, '#eceef8', '#c3c6dc', '#a5a9c6');
+    const p = iso(o.x + .5, o.y + .5, 14); R(c, Math.round(p[0]) - 9, Math.round(p[1]) - 5, 16, 3, '#ffffff'); R(c, Math.round(p[0]) - 10, Math.round(p[1]) - 2, 18, 2, '#565a82');
+    R(c, Math.round(p[0]) + 5, Math.round(p[1]) - 1, 3, 2, Math.floor(t * 2 + o.ph) % 2 ? '#5be37d' : '#1d4a2c');
+  },
+  beanbag(c, o, t) {
+    const [cx, cy] = iso(o.x + .5, o.y + .5, 0), x = Math.round(cx), y = Math.round(cy);
+    shadow(c, x, y, 20, 8); R(c, x - 14, y - 12, 28, 12, '#2f9e4f'); R(c, x - 18, y - 9, 36, 9, '#3fbf61'); R(c, x - 10, y - 17, 20, 7, '#4fd374'); R(c, x - 6, y - 18, 8, 2, '#8ff7ac'); R(c, x - 18, y - 2, 36, 2, '#1f7a3a');
+  }
+};
+
+/* ---- avatar ---- */
+function drawAvatar(c, ax, ay, a, t, pose, still) {
+  const L = a.look, P = 2, ph = a.phase;
+  const r = (u, top, w, h, col) => { c.fillStyle = col; c.fillRect(ax + u * P, ay - top * P, w * P, h * P); };
+  const chair = shade(DIVS[a.div].color, -.55), chairL = shade(chair, .25), skinD = shade(L.skin, -.18), shirtD = shade(L.shirt, -.25), pants = '#2b2f55';
+  shadow(c, ax, ay + 1, 12, 5, .3);
+  const beat = Math.floor(t * 9 + ph), typing = pose === 'back' || pose === 'work';
+  // ----- head parts (shared) -----
+  const head = (du, dv, face) => {
+    const hu = du, ht = 24 + dv;
+    if (face) {
+      r(hu - 3, ht, 6, 7, L.skin);
+      if (L.style === 'long') { r(hu - 4, ht, 1, 11, L.hair); r(hu + 3, ht, 1, 11, L.hair); }
+      if (L.style === 'bun') r(hu - 1, ht + 3, 3, 3, L.hair);
+      if (L.style === 'spiky') { r(hu - 3, ht + 2, 1, 2, L.hair); r(hu - 1, ht + 3, 1, 3, L.hair); r(hu + 1, ht + 2, 1, 2, L.hair); r(hu + 2, ht + 1, 1, 1, L.hair); }
+      if (L.style === 'cap') { r(hu - 3, ht, 6, 3, L.cap); r(hu - 4, ht - 2, 8, 1, shade(L.cap, -.3)); r(hu - 3, ht + 1, 6, 1, shade(L.cap, .2)); }
+      else { r(hu - 3, ht, 6, 3, L.hair); r(hu - 3, ht - 3, 1, 3, L.hair); r(hu + 2, ht - 3, 1, 3, L.hair); r(hu - 2, ht, 3, 1, shade(L.hair, .25)); }
+      if (L.style === 'phones') { r(hu - 4, ht - 1, 8, 1, '#22223a'); r(hu - 5, ht - 3, 2, 4, '#e8e8ff'); r(hu + 3, ht - 3, 2, 4, '#e8e8ff'); }
+    } else {
+      r(hu - 3, ht, 6, 7, L.hair);
+      r(hu - 4, ht - 4, 1, 2, L.skin); r(hu + 3, ht - 4, 1, 2, L.skin);
+      r(hu - 2, ht, 3, 1, shade(L.hair, .25));
+      if (L.style === 'long') r(hu - 3, ht - 7, 6, 4, L.hair);
+      if (L.style === 'bun') r(hu - 1, ht + 3, 3, 3, L.hair);
+      if (L.style === 'spiky') { r(hu - 3, ht + 2, 1, 2, L.hair); r(hu - 1, ht + 3, 1, 3, L.hair); r(hu + 1, ht + 2, 1, 2, L.hair); r(hu + 2, ht + 1, 1, 1, L.hair); }
+      if (L.style === 'cap') { r(hu - 3, ht, 6, 4, L.cap); r(hu - 3, ht - 3, 6, 1, shade(L.cap, -.3)); }
+      if (L.style === 'phones') { r(hu - 4, ht - 2, 8, 1, '#22223a'); r(hu - 5, ht - 4, 2, 4, '#e8e8ff'); r(hu + 3, ht - 4, 2, 4, '#e8e8ff'); }
+    }
+  };
+  if (pose === 'back') {
+    const lh = beat % 2, rh = (beat + 1) % 2;
+    r(-3, 2, 6, 1, '#1d1d30'); r(-3, 1, 1, 1, '#555'); r(2, 1, 1, 1, '#555'); r(-1, 4, 2, 2, '#34344f');
+    r(-4, 5, 8, 2, chair);
+    r(-4, 15, 8, 9, L.shirt); r(-4, 15, 1, 9, shirtD); r(3, 15, 1, 9, shirtD);
+    r(-6, 17, 2, 8, L.shirt); r(4, 17, 2, 8, L.shirt);
+    r(-6, 19 + lh, 2, 2, L.skin); r(4, 19 + rh, 2, 2, L.skin);
+    r(-4, 12, 8, 8, chair); r(-4, 12, 8, 1, chairL); r(-5, 11, 1, 5, chair); r(4, 11, 1, 5, chair);
+    r(-1, 17, 2, 2, skinD);
+    head(0, 0, false);
+  } else {
+    // front-facing (waiting / idle / portrait work)
+    const sleep = pose === 'idle', wait = pose === 'wait';
+    const slump = sleep ? Math.round(Math.sin(t * 1.2 + ph) * .6 + .6) : 0;
+    r(-5, 13, 10, 9, chair); r(-5, 13, 10, 1, chairL);
+    r(-5, 5, 10, 2, shade(chair, .1));
+    r(-3, 8, 6, 2, pants); r(-3, 6, 2, 5, pants); r(1, 6, 2, 5, pants);
+    r(-3, 1, 2, 1, '#f4f4ff'); r(1, 1, 2, 1, '#f4f4ff');
+    r(-4, 15 - slump, 8, 9 - slump, L.shirt); r(-4, 15 - slump, 1, 8, shirtD); r(3, 15 - slump, 1, 8, shirtD);
+    r(-1, 15 - slump, 2, 1, skinD);
+    // arms
+    r(-6, 15 - slump, 2, 7, L.shirt); r(-6, 8, 2, 2, L.skin);
+    if (wait) { const wv = Math.sin(t * 9 + ph) > 0 ? 0 : 1; r(4, 22, 2, 8, L.shirt); r(4 + wv, 29, 2, 2, L.skin); }
+    else { r(4, 15 - slump, 2, 7, L.shirt); r(4, 8, 2, 2, L.skin); }
+    r(-1, 17 - slump, 2, 2, skinD);
+    head(sleep ? 1 : 0, -slump - (sleep ? 1 : 0), true);
+    const du = sleep ? 1 : 0, dv = -slump - (sleep ? 1 : 0);
+    // face
+    if (sleep) { r(-2 + du, 20 + dv, 2, 1, '#1a1330'); r(1 + du, 20 + dv, 2, 1, '#1a1330'); r(-1 + du, 18 + dv, 2, 1, '#1a1330'); r(-3 + du, 19 + dv, 1, 1, '#ff9aa8'); r(2 + du, 19 + dv, 1, 1, '#ff9aa8'); }
+    else if (wait) { r(-2, 21, 1, 2, '#1a1330'); r(1, 21, 1, 2, '#1a1330'); r(-1, 19, 2, 2, '#1a1330'); r(-3, 19, 1, 1, '#ff9aa8'); r(2, 19, 1, 1, '#ff9aa8'); }
+    else { r(-2, 21, 1, 2, '#1a1330'); r(1, 21, 1, 2, '#1a1330'); r(-1, 18, 2, 1, '#1a1330'); }
+  }
+}
+function drawCrown(c, ax, ay, bob) {
+  const ct = 31 + bob, G = '#f5c542', GD = '#b8861d';
+  const r = (u, top, w, h, col) => { c.fillStyle = col; c.fillRect(ax + u * 2, ay - top * 2, w * 2, h * 2); };
+  r(-3, ct + 1, 1, 1, G); r(-1, ct + 1, 1, 1, G); r(1, ct + 1, 1, 1, G); r(3, ct + 1, 1, 1, G);
+  r(-3, ct, 7, 2, G); r(-3, ct - 1, 7, 1, GD); r(0, ct, 1, 1, '#ff4d6d');
+  c.strokeStyle = '#3a2a08'; c.lineWidth = 1; c.strokeRect(ax - 6.5, ay - (ct + 2) * 2 + .5, 14, 9);
+}
+
+/* ---- desk ---- */
+function drawDesk(c, a, t) {
+  const [gx, gy] = a.desk, head = a.head, D = DIVS[a.div];
+  const top = head ? '#7a4a2d' : '#cfa06a', lf = head ? '#573320' : '#a97f4d', rt = head ? '#432618' : '#8f6739';
+  box(c, gx + .05, gy + .05, .9, .9, 0, 16, top, lf, rt);
+  if (head) {
+    c.strokeStyle = '#f5c542'; c.lineWidth = 1.5; c.beginPath(); let p = iso(gx + .05, gy + .95, 16); c.moveTo(p[0], p[1]); p = iso(gx + .95, gy + .95, 16); c.lineTo(p[0], p[1]); p = iso(gx + .95, gy + .05, 16); c.lineTo(p[0], p[1]); c.stroke();
+  }
+  [[3, 7], [9, 13]].forEach(([z0, z1]) => {
+    poly(c, [iso(gx + .16, gy + .95, z0), iso(gx + .84, gy + .95, z0), iso(gx + .84, gy + .95, z1), iso(gx + .16, gy + .95, z1)], shade(lf, -.16), shade(lf, -.38));
+    const h = iso(gx + .5, gy + .95, (z0 + z1) / 2); R(c, Math.round(h[0]) - 3, Math.round(h[1]), 6, 1, head ? '#f5c542' : '#e9e0cf');
+  });
+  // keyboard
+  poly(c, [iso(gx + .3, gy + .62, 16), iso(gx + .7, gy + .62, 16), iso(gx + .7, gy + .82, 16), iso(gx + .3, gy + .82, 16)], '#d9daee', '#6e709a');
+  if (a.state === 'working') { const k = iso(gx + .34 + (Math.floor(t * 9 + a.phase) % 5) * .07, gy + .72, 16); R(c, Math.round(k[0]), Math.round(k[1]), 2, 1, D.color); }
+  // monitor
+  const m = iso(gx + .5, gy + .34, 16); drawMonitor(c, Math.round(m[0]), Math.round(m[1]), a, t);
+  // mug
+  const mg = iso(gx + .84, gy + .5, 16), mx = Math.round(mg[0]), my = Math.round(mg[1]);
+  R(c, mx - 3, my - 5, 6, 5, '#f4f4ff'); R(c, mx - 3, my - 5, 6, 1, '#6b3a1f'); R(c, mx + 3, my - 4, 2, 3, '#f4f4ff');
+  if (a.state === 'working') { const s = Math.floor(t * 4 + a.phase) % 4; R(c, mx - 1 + (s % 2), my - 8 - s, 1, 1, 'rgba(255,255,255,.7)'); }
+  // papers (waiting) or little plant
+  const pp = iso(gx + .17, gy + .52, 16), px = Math.round(pp[0]), py = Math.round(pp[1]);
+  if (a.state === 'waiting') {
+    const pul = (Math.sin(t * 6) + 1) / 2;
+    R(c, px - 6, py - 4, 12, 4, '#ffffff'); R(c, px - 5, py - 6, 11, 3, '#e9e9f7'); R(c, px - 4, py - 3, 7, 1, '#9a9ac8');
+    c.strokeStyle = `rgba(255,200,61,${.4 + pul * .6})`; c.lineWidth = 1.5; c.strokeRect(px - 7.5, py - 7.5, 15, 10);
+  } else if (a.idx % 2) { R(c, px - 3, py - 3, 6, 3, '#9c5a34'); R(c, px - 4, py - 8, 3, 5, '#3fbf61'); R(c, px, py - 10, 3, 7, '#4fd374'); }
+  else { R(c, px - 2, py - 5, 5, 5, '#ffd23f'); R(c, px + 1, py - 4, 3, 1, '#ff8a3d'); R(c, px - 1, py - 4, 1, 1, '#222'); }
+}
+function drawMonitor(c, cx, cy, a, t) {
+  const D = DIVS[a.div];
+  R(c, cx - 5, cy - 2, 10, 2, '#2a2a3d'); R(c, cx - 1, cy - 6, 2, 4, '#3a3a52');
+  R(c, cx - 12, cy - 27, 24, 21, '#14142a'); R(c, cx - 12, cy - 27, 24, 1, '#44447a');
+  const sx = cx - 10, sy = cy - 25, sw = 20, sh = 17;
+  if (a.state === 'working') {
+    const pulse = .5 + .5 * Math.sin(t * 3 + a.phase);
+    R(c, sx, sy, sw, sh, '#07243b'); R(c, sx, sy, sw, 2, D.color);
+    const sc = Math.floor(t * 4 + a.phase * 3);
+    for (let i = 0; i < 5; i++) {
+      const w = 3 + ((i * 5 + sc * 3 + i * i) % 13), ind = ((i + sc) % 3) * 2;
+      R(c, sx + 1 + ind, sy + 4 + i * 3, Math.min(w, sw - 2 - ind), 2, i % 2 ? '#8be9fd' : (i % 3 ? '#b9ffcb' : D.color));
+    }
+    if (Math.floor(t * 2) % 2) R(c, sx + 2, sy + sh - 2, 2, 2, '#fff');
+    c.save(); c.globalCompositeOperation = 'lighter';
+    const g = c.createRadialGradient(cx, cy - 16, 3, cx, cy - 16, 40); g.addColorStop(0, `rgba(90,200,255,${.22 + pulse * .12})`); g.addColorStop(1, 'rgba(90,200,255,0)');
+    c.fillStyle = g; c.fillRect(cx - 44, cy - 58, 88, 88); c.restore();
+  } else if (a.state === 'waiting') {
+    const on = Math.floor(t * 2.5) % 2;
+    R(c, sx, sy, sw, sh, on ? '#5a3c00' : '#2d1f00'); drawText(c, '!', cx - 4, sy + 2, on ? '#ffd23f' : '#a8761a', 2);
+    c.strokeStyle = on ? '#ffc83d' : '#6a4a10'; c.lineWidth = 1; c.strokeRect(sx + .5, sy + .5, sw - 1, sh - 1);
+  } else {
+    R(c, sx, sy, sw, sh, '#0a0a18');
+    const bx = Math.floor(Math.abs(((t * 7 + a.phase * 9) % 32) - 16)), by = Math.floor(Math.abs(((t * 4 + a.phase * 5) % 22) - 11));
+    R(c, sx + 1 + Math.min(bx, 16), sy + 1 + Math.min(by, 13), 2, 2, '#4b4b86');
+  }
+}
+
+/* ---- overlays ---- */
+let hoverId = null, hoverFromQueue = null;
+function drawOverlay(c, a, t) {
+  const D = DIVS[a.div], ax = a.ax, ay = a.ay, bob = Math.round(Math.sin(t * 3 + a.phase) * 1.2);
+  if (a.head) drawCrown(c, ax, ay, bob > 0 ? 1 : 0);
+  const top = a.head ? 46 : 40;
+  if (a.state === 'waiting') {
+    const b = Math.round(Math.sin(t * 7 + a.phase) * 1.6);
+    const px = (u, tp, w, h, col) => { c.fillStyle = col; c.fillRect(ax + u * 2, ay - (tp + b) * 2, w * 2, h * 2); };
+    px(-5, top + 1, 10, 11, '#1a1330'); px(-4, top, 8, 9, '#ffd23f'); px(-4, top, 8, 1, '#fff0a0'); px(-1, top - 9, 2, 2, '#1a1330'); px(-1, top - 8, 2, 1, '#ffd23f');
+    px(-1, top - 1, 2, 4, '#1a1330'); px(-1, top - 6, 2, 2, '#1a1330');
+    const ph = (t * 1.1 + a.phase) % 1; c.strokeStyle = `rgba(255,200,61,${1 - ph})`; c.lineWidth = 2; c.beginPath(); c.ellipse(ax, ay + 1, 16 + ph * 24, 7 + ph * 12, 0, 0, 6.2832); c.stroke();
+  } else if (a.state === 'idle') {
+    for (let i = 0; i < 3; i++) {
+      const p = ((t * .45 + i * .33) % 1), x = ax + 10 + p * 14 + i * 3, y = ay - 52 - p * 22 - i * 3;
+      c.globalAlpha = Math.sin(p * Math.PI); drawText(c, 'Z', x, y, i === 2 ? '#ffffff' : '#9fd6ff', i === 2 ? 2 : 1, '#14102a'); c.globalAlpha = 1;
+    }
+  }
+  // focus ring
+  const nowS = performance.now() / 1000;
+  if (a.focusUntil > nowS || hoverFromQueue === a.id) {
+    const q = (nowS * 1.6) % 1; c.strokeStyle = '#fff'; c.lineWidth = 2; c.globalAlpha = hoverFromQueue === a.id ? .9 : Math.min(1, a.focusUntil - nowS);
+    c.beginPath(); c.ellipse(ax, ay - 30, 30 + q * 12, 52 + q * 8, 0, 0, 6.2832); c.stroke();
+    const dd = iso(a.desk[0] + 1, a.desk[1] + 1, 0); c.beginPath(); c.moveTo(ax, ay - 90 - q * 4); c.lineTo(ax - 7, ay - 100 - q * 4); c.lineTo(ax + 7, ay - 100 - q * 4); c.closePath(); c.fillStyle = '#fff'; c.fill(); c.globalAlpha = 1;
+  }
+  // nameplate
+  const hov = hoverId === a.id, name = (a.plate || a.name).toUpperCase(), s = textSprite(name, hov ? '#ffffff' : '#e6e1ff'), w = s.w + (a.head ? 24 : 15), x = ax - Math.round(w / 2), y = ay + 9;
+  R(c, x - 1, y - 1, w + 2, 12, hov ? '#ffffff' : D.color); R(c, x, y, w, 10, hov ? '#2a2060' : '#150f33');
+  const led = a.state === 'working' ? '#5be37d' : a.state === 'waiting' ? (Math.floor(t * 3) % 2 ? '#ffc83d' : '#8a6a1a') : '#8a86b8';
+  R(c, x + 3, y + 3, 4, 4, led);
+  if (a.head) { c.fillStyle = '#f5c542'; c.fillRect(x + 9, y + 2, 1, 2); c.fillRect(x + 11, y + 2, 1, 2); c.fillRect(x + 13, y + 2, 1, 2); c.fillRect(x + 9, y + 4, 5, 3); }
+  c.drawImage(s.cv, x + (a.head ? 17 : 10), y + 1);
+}
+
+/* ---- FX ---- */
+const FX = [];
+function burst(a, text, col, cols) {
+  for (let i = 0; i < 28; i++) FX.push({ k: 'p', x: a.ax + rand(-8, 8), y: a.ay - 44, vx: rand(-70, 70), vy: rand(-150, -30), life: rand(.6, 1.2), max: 1.2, col: pick(cols), s: randi(2, 3) });
+  FX.push({ k: 't', x: a.ax, y: a.ay - 112, vy: -16, life: 1.5, max: 1.5, text, col });
+}
+function stepFX(dt) {
+  for (let i = FX.length - 1; i >= 0; i--) {
+    const f = FX[i]; f.life -= dt; if (f.life <= 0) { FX.splice(i, 1); continue; }
+    if (f.k === 'p') { f.vy += 300 * dt; f.x += f.vx * dt; f.y += f.vy * dt; } else f.y += f.vy * dt;
+  }
+}
+function drawFX(c) {
+  for (const f of FX) {
+    c.globalAlpha = clamp(f.life / (f.max * .5), 0, 1);
+    if (f.k === 'p') { c.fillStyle = f.col; c.fillRect(Math.round(f.x), Math.round(f.y), f.s, f.s); }
+    else { const s = textSprite(f.text, f.col, '#0c0820'); c.drawImage(s.cv, Math.round(f.x - s.w), Math.round(f.y), s.w * 2, s.h * 2); }
+  }
+  c.globalAlpha = 1;
+}
+
+/* ---- hub + packets ---- */
+const PK = []; let pkT = 0;
+const ROUTES = [[7.5, .5], [7.5, 15.5], [.5, 7.5], [15.5, 7.5]];
+function drawHub(c, t) {
+  const [cx, cy] = iso(8, 8, 0);
+  for (let i = 0; i < 3; i++) {
+    const p = ((t * .5 + i / 3) % 1), s = .35 + p * .65;
+    c.strokeStyle = `rgba(92,200,255,${(1 - p) * .8})`; c.lineWidth = 1.5;
+    poly(c, [[cx, cy - 16 * 2 * s], [cx + 32 * 2 * s, cy], [cx, cy + 16 * 2 * s], [cx - 32 * 2 * s, cy]], null, c.strokeStyle, 1.5);
+  }
+  const f = Math.round(Math.sin(t * 2) * 2);
+  c.save(); c.globalCompositeOperation = 'lighter'; const g = c.createRadialGradient(cx, cy - 22, 2, cx, cy - 22, 36); g.addColorStop(0, 'rgba(92,200,255,.35)'); g.addColorStop(1, 'rgba(92,200,255,0)'); c.fillStyle = g; c.fillRect(cx - 40, cy - 60, 80, 80); c.restore();
+  drawText(c, 'AI OS', cx - 15, cy - 28 + f, '#ffffff', 1, '#1c4a8a');
+}
+function stepPackets(dt) {
+  pkT -= dt; if (pkT <= 0 && PK.length < 7) { pkT = rand(.5, 1.4); PK.push({ r: randi(0, 3), u: 0, out: Math.random() < .5, v: rand(.25, .4) }); }
+  for (let i = PK.length - 1; i >= 0; i--) { PK[i].u += PK[i].v * dt; if (PK[i].u >= 1) PK.splice(i, 1); }
+}
+function drawPackets(c) {
+  for (const p of PK) {
+    const e = ROUTES[p.r];
+    for (let k = 0; k < 4; k++) {
+      const u = clamp(p.u - k * .018, 0, 1), s = p.out ? u : 1 - u, x = 7.5 + (e[0] - 7.5) * s, y = 7.5 + (e[1] - 7.5) * s, [px, py] = iso(x, y, 1);
+      c.fillStyle = k === 0 ? '#e8fbff' : `rgba(92,200,255,${.6 - k * .14})`; c.fillRect(Math.round(px) - 2, Math.round(py) - 1, 4 - (k > 1 ? 1 : 0), 2);
+    }
+  }
+}
+
+/* ---- frame ---- */
+function renderFrame(t) {
+  const c = ctx; c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, cv.width, cv.height);
+  { const s0 = window.SKINS[window.SKINID]; if (s0 && s0.custom && s0.back) { c.setTransform(K, 0, 0, K, 0, 0); c.imageSmoothingEnabled = false; s0.back(c, t); c.setTransform(1, 0, 0, 1, 0, 0); } }
+  c.drawImage(stat, 0, 0);
+  c.setTransform(K, 0, 0, K, 0, 0); c.imageSmoothingEnabled = false;
+  const solo = soloKey(), sk = window.SKINS[window.SKINID], custom = !!(sk && sk.custom);
+  if (custom) sk.world(c, t); else if (!solo) { drawHub(c, t); drawPackets(c); }
+  const dimA = (a, fn) => () => { if (a.sleeping || a.done) c.globalAlpha = .5; fn(); c.globalAlpha = 1; };
+  const items = [];
+  for (const a of AGENTS) {
+    const dd = a.desk[0] + a.desk[1];
+    if (hoverId === a.id) items.push({ d: dd + .5, f: () => { const [x, y] = a.desk; tile(c, x + 1, y + 1, 0, 'rgba(255,255,255,.28)', '#fff'); tile(c, x, y, 0, 'rgba(255,255,255,.18)', '#fff'); } });
+    items.push({ d: dd + 1, f: dimA(a, () => custom ? sk.desk(c, a, t) : drawDesk(c, a, t)) });
+    items.push({ d: dd + 3, f: dimA(a, () => { const pose = a.state === 'working' ? 'back' : a.state === 'waiting' ? 'wait' : 'idle'; if (custom) sk.avatar(c, a.ax, a.ay, a, t, pose); else drawAvatar(c, a.ax, a.ay, a, t, pose); }) });
+  }
+  if (custom) sk.items(c, t, items, solo); else if (sk && sk.items) sk.items(c, t, items, solo);
+  if (!custom) for (const o of DECOR) if (!solo || o.room === solo) items.push({ d: o.x + o.y + 1 + (o.type === 'shelf' || o.type === 'server' ? -.2 : 0), f: () => DRAW_DECOR[o.type](c, o, t) });
+  items.sort((p, q) => p.d - q.d); items.forEach(i => i.f());
+  if (sk && sk.post) sk.post(c, t);
+  for (const a of AGENTS) { if (a.sleeping || a.done) c.globalAlpha = .55; drawOverlay(c, a, t); c.globalAlpha = 1; }
+  drawFX(c);
+}
+
+/* ---- sizing ---- */
+function applyZoom(z, fit) {
+  zoom = clamp(z, .3, 3); fitMode = fit;
+  const dpr = DPR(), k = clamp(Math.ceil(zoom * dpr - .001), 1, 3);
+  cv.style.width = Math.round(W0 * zoom) + 'px'; cv.style.height = Math.round(H0 * zoom) + 'px';
+  if (k !== K || cv.width !== W0 * k) { K = k; cv.width = W0 * K; cv.height = H0 * K; stat.width = W0 * K; stat.height = H0 * K; buildStatic(); }
+  cv.style.imageRendering = Math.abs(zoom * dpr - Math.round(zoom * dpr)) < .02 && zoom * dpr >= 1 ? 'pixelated' : 'auto';
+}
+function fitZoom() {
+  const st = $('#stage'), aw = st.clientWidth - 12, ah = st.clientHeight - 12;
+  if (soloKey()) {                                                  // room bounds in world px: x 296..760, y 0..350
+    const z = clamp(Math.min(aw / 470, ah / 350), .3, 3); applyZoom(z, true);
+    st.scrollTo(cv.offsetLeft + 528 * zoom - st.clientWidth / 2, cv.offsetTop + 175 * zoom - st.clientHeight / 2); return;
+  }
+  let z = Math.min(aw / W0, ah / H0); const dpr = DPR(), zd = z * dpr, r = Math.floor(zd);
+  if (r >= 1 && zd - r < .1 * r) z = r / dpr;
+  applyZoom(z, true);
+}
+$('#zIn').addEventListener('click', () => applyZoom(zoom * 1.25, false));
+$('#zOut').addEventListener('click', () => applyZoom(zoom / 1.25, false));
+$('#zFit').addEventListener('click', fitZoom);
+new ResizeObserver(() => { if (fitMode) fitZoom(); }).observe($('#stage'));
+
+/* ---- pointer ---- */
+const tip = $('#tip');
+function worldPos(e) { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / zoom, (e.clientY - r.top) / zoom]; }
+function hitAgent(wx, wy) {
+  let best = null, bd = 1e9;
+  for (const a of AGENTS) {
+    const top = a.ay - (a.head ? 104 : 90);
+    if (wx >= a.ax - 32 && wx <= a.ax + 32 && wy >= top && wy <= a.ay + 20) { const d = Math.abs(wx - a.ax) + Math.abs(wy - (a.ay - 40)) * .5; if (d < bd) { bd = d; best = a; } }
+  }
+  return best;
+}
+function tipHTML(a) {
+  const D = DIVS[a.div], st = { working: 'Working', waiting: 'Needs approval', idle: 'Idle' }[a.state];
+  const d = decisions.find(x => x.id === a.pending);
+  return `<h4>${a.head ? '<span class="crown"></span>' : ''}${esc(a.title || a.name)} <span class="chip ${a.state}">${st}</span></h4>
+    <small>${esc(a.role)} · ${D.tab}${a.head ? ' · Head' : ''}</small>
+    <p>${esc(a.subtask)}</p>
+    ${d ? `<p style="color:var(--amber)">▸ P${d.prio} · #${d.ticket} awaiting your decision</p>` : `<div class="bar"><i style="width:${Math.round(a.progress)}%;background:${D.color}"></i></div>`}
+    <div class="hint">Click for logs, tasks &amp; specs</div>`;
+}
+cv.addEventListener('mousemove', e => {
+  const [wx, wy] = worldPos(e), a = hitAgent(wx, wy); hoverId = a ? a.id : null; cv.style.cursor = a ? 'pointer' : 'default';
+  if (a) {
+    tip.style.setProperty('--c', DIVS[a.div].color); tip.innerHTML = tipHTML(a);
+    const wr = $('#stageWrap').getBoundingClientRect(); let x = e.clientX - wr.left + 16, y = e.clientY - wr.top + 16;
+    if (x + 280 > wr.width) x = e.clientX - wr.left - 286; if (y + tip.offsetHeight + 8 > wr.height) y = e.clientY - wr.top - tip.offsetHeight - 12;
+    tip.style.left = Math.max(4, x) + 'px'; tip.style.top = Math.max(4, y) + 'px'; tip.classList.add('on');
+  } else tip.classList.remove('on');
+});
+cv.addEventListener('mouseleave', () => { hoverId = null; tip.classList.remove('on'); });
+cv.addEventListener('click', e => { const [wx, wy] = worldPos(e), a = hitAgent(wx, wy); if (a) { tip.classList.remove('on'); openModal(a.id); } });
+
+/* ---------- main loop ---------- */
+let last = performance.now() / 1000, accSec = 0, accChat = 0, accTok = 0, accHud = 0, accDrift = 0;
+function loop(ms) {
+  const t = ms / 1000, dt = Math.min(.25, t - last); last = t;
+  // simulation
+  if (OBS) obsStep(dt); else if (LIVE) liveStep(dt); else {
+    AGENTS.forEach(a => simStep(a, dt));
+    accChat -= dt; if (accChat <= 0) { accChat = rand(.7, 1.9); chatter(); }
+    // tokens
+    let rate = 0; AGENTS.forEach(a => { if (a.state === 'working') rate += (a.head ? 72 : 44) * (.85 + Math.random() * .3); });
+    TOK.rate = TOK.rate * .92 + rate * .08; TOK.used += TOK.rate * dt;
+  }
+  accHud -= dt; if (accHud <= 0) { accHud = .25; updateLegend(); renderTokens(); $('#clock').textContent = clockStr(); }
+  accSec -= dt; if (accSec <= 0) { accSec = 1; TOK.hist.push(TOK.rate); if (TOK.hist.length > 60) TOK.hist.shift(); drawSpark(); updateAges(); refreshModal(); }
+  accDrift -= dt; if (accDrift <= 0 && !LIVE && !OBS) { accDrift = rand(4, 8); KPIS[0].val = Math.min(KPIS[0].goal, KPIS[0].val + randi(1, 5)); KPIS[0].today += 2; KPIS[1].val = Math.min(KPIS[1].goal, KPIS[1].val + randi(4, 30)); KPIS[1].today += 12; renderKPIs(); }
+  stepFX(dt); stepPackets(dt);
+  renderFrame(t);
+  requestAnimationFrame(loop);
+}
+
+
+/* =====================================================================
+   LIVE MODE — talks to server.js, which runs real Claude Code sessions
+   (your subscription login). Falls back to the simulation if no server.
+   ===================================================================== */
+let LIVE = false;
+const liveTok = [];                       // {t, n} usage events for the burn-rate window
+const setMode = (cls, txt) => { const m = $('#modeTag'); m.className = 'mode ' + cls; m.textContent = txt; };
+const api = (path, body) => fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  .then(r => r.json().then(j => { if (!r.ok) throw new Error(j.error || r.statusText); return j; }));
+
+function liveStep(dt) {
+  const now = Date.now(); while (liveTok.length && now - liveTok[0].t > 60000) liveTok.shift();
+  const target = liveTok.reduce((s, e) => s + e.n, 0) / 60;
+  TOK.rate += (target - TOK.rate) * Math.min(1, dt * 2);
+  TOK.usd = liveTok.reduce((s, e) => s + (e.c || 0), 0) * 60;
+  AGENTS.forEach(a => { if (a.state === 'working') { a.progress += (94 - a.progress) * dt * .04; a.stats.uptime += dt / 3600; } });
+}
+
+async function enterLive(health) {
+  LIVE = true;
+  Object.assign(TOK, { budget: health.budget, used: 0, rate: 0, hist: Array.from({ length: 30 }, () => 0) });
+  TOK.resetAt = Date.now() + 7 * 86400000;
+  const names = ['CONTENT OUTPUT', 'BOT BIZ RUNS', 'AGENCY DELIVERABLES', 'TASKS CLEARED'];
+  KPIS.forEach((k, i) => Object.assign(k, { name: names[i], val: 0, today: 0, goal: [20, 20, 20, 40][i], f: v => fmt(v) }));
+  decisions.length = 0; Object.assign(stats, { approved: 0, rejected: 0, revised: 0, respTotal: 0, respN: 0 });
+  AGENTS.forEach(a => { Object.assign(a, { state: 'idle', subtask: 'Standing by — assign a task', progress: 0, tasks: [], pending: null, log: [] }); a.stats = { done: 0, success: 100, latency: 0, tokens: 0, ctx: 0, errors: 0, uptime: 0 }; });
+  $('#log').innerHTML = ''; logBuf.length = 0;
+  $('#liveTag').textContent = 'LIVE'; setMode('live', 'LIVE · CLAUDE CODE');
+  $('.local').textContent = '● LIVE USAGE · SUBSCRIPTION · NO API KEY';
+  $('#cmd').placeholder = '@agent task   (plan first)   ·   @agent !task   (skip approval)   ·   e.g. @seo find 10 keyword ideas for AI agents';
+  logLine('SYS', 'system', 'bridge connected — agents are real Claude Code sessions (plan → approve → execute)', 'command');
+  logLine('SYS', 'system', 'type "@agent-id your task" below, or click an agent → ASSIGN TASK. ids: ' + AGENTS.map(a => a.id).join(', '), 'command');
+  if (health.loggedIn === false) { setMode('warn', 'NOT LOGGED IN'); logLine('ERR', 'system', 'Claude Code is not logged in. Run `claude auth login` in a terminal, then reload this page.', 'command'); }
+  else if (health.loggedIn === null) logLine('WARN', 'system', 'could not verify the Claude Code login — is `claude` installed and on PATH?', 'command');
+  renderKPIs(); renderTabs(); renderQueue(); renderBadge(); renderConsoleFoot(); updateLegend(); renderTokens(); drawSpark();
+  const es = new EventSource('/events');
+  es.onmessage = e => { try { onLive(JSON.parse(e.data)); } catch (err) { console.error(err); } };
+  es.onerror = () => setMode('warn', 'BRIDGE OFFLINE · RETRYING');
+  es.onopen = () => health.loggedIn === false ? 0 : setMode('live', 'LIVE · CLAUDE CODE');
+}
+
+function liveDecision(sd) {
+  if (decisions.some(x => x.id === sd.id)) return;
+  const a = AG[sd.agent]; if (!a) return;
+  decisions.push({ id: sd.id, agent: sd.agent, div: sd.div || a.div, title: sd.title, detail: sd.detail, full: sd.full, prio: sd.prio, blocks: sd.blocks, tok: Math.round(TOK.used / 1000) % 90 + 5,
+    ticket: sd.ticket, created: sd.created, held: false, rev: 0, fresh: true, esc: false, kind: sd.kind });
+  a.pending = sd.id; burst(a, '!', '#ffc83d', ['#ffc83d', '#fff3c4']);
+  renderQueue(); renderTabs(); renderBadge(); refreshModal();
+}
+
+function onLive(ev) {
+  const a = ev.agent && AG[ev.agent];
+  switch (ev.type) {
+    case 'hello':
+      ev.agents.forEach(s => { const g = AG[s.id]; if (g) { g.state = s.state; g.subtask = s.subtask; g.tasks = s.task ? [{ id: s.ticket, title: s.task, kind: 'active' }] : []; } });
+      ev.decisions.forEach(liveDecision); break;
+    case 'agent':
+      if (!a) break;
+      if (ev.state === 'working' && a.state !== 'working') a.progress = Math.max(a.progress * .5, 4);
+      a.state = ev.state; a.subtask = ev.subtask || a.subtask;
+      if (ev.task) a.tasks = [{ id: ev.ticket, title: ev.task, kind: 'active' }];
+      if (ev.state === 'idle') { a.progress = 0; a.pending = null; }
+      if (ev.state === 'waiting') a.progress = 100;
+      break;
+    case 'log': if (a) agentLog(a, ev.level, ev.msg); break;
+    case 'decision': liveDecision(ev.decision); break;
+    case 'decision_done': {
+      const i = decisions.findIndex(x => x.id === ev.id);
+      if (i >= 0) { decisions.splice(i, 1); const c = $(`.item[data-id="${ev.id}"]`); if (c) c.classList.add('leaving'); setTimeout(renderQueue, 280); renderTabs(); renderBadge(); }
+      break;
+    }
+    case 'usage': if (a) { TOK.used += ev.tokens; a.stats.tokens += ev.tokens; liveTok.push({ t: Date.now(), n: ev.tokens, c: ev.cost }); a.stats.cost = (a.stats.cost || 0) + ev.cost; } break;
+    case 'done': if (a) { a.stats.done++; kpiBump(a.div); burst(a, 'DONE', '#5be37d', ['#5be37d', '#b6ffc9', '#ffffff']); } break;
+  }
+  updateLegend(); refreshModal();
+}
+
+function resolveLive(id, act) {
+  const d = decisions.find(x => x.id === id); if (!d) return;
+  const a = AG[d.agent];
+  if (act === 'hold') {
+    d.held = !d.held; logLine('AUDIT', 'operator', `${d.held ? 'kept open' : 'released hold on'} #${d.ticket} “${d.title}”`, d.div);
+    renderQueue(); renderTabs(); renderBadge(); refreshModal(); return;
+  }
+  let note = '';
+  if (act === 'revise') { note = prompt(`Revision note for ${a.name}:`, ''); if (note === null) return; }
+  const fx = { approve: ['APPROVED', '#5be37d', ['#5be37d', '#b6ffc9', '#ffffff']], reject: ['REJECTED', '#ff5d6c', ['#ff5d6c', '#ffb3ba', '#ffffff']], revise: ['REVISE', '#5cc8ff', ['#5cc8ff', '#c1ecff', '#ffffff']] }[act];
+  api('/api/decide', { id, action: act, note }).then(() => {
+    stats.respTotal += (Date.now() - d.created) / 1000; stats.respN++; stats[{ approve: 'approved', reject: 'rejected', revise: 'revised' }[act]]++;
+    logLine('AUDIT', 'operator', `${fx[0]} #${d.ticket} “${d.title}”${note ? ' — ' + note : ''}`, d.div);
+    burst(a, fx[0], fx[1], fx[2]); renderConsoleFoot();
+  }).catch(err => logLine('ERR', 'operator', 'decision failed: ' + err.message, d.div));
+}
+
+function assign(line) {
+  const m = line.match(/^@([\w-]+)\s+(!?)\s*([\s\S]+)$/);
+  if (!m) return logLine('WARN', 'operator', 'usage: @agent-id task…   (ids: ' + AGENTS.map(a => a.id).join(', ') + ')');
+  const a = AG[m[1].toLowerCase()];
+  if (!a) return logLine('ERR', 'operator', `no agent "${m[1]}". ids: ` + AGENTS.map(x => x.id).join(', '));
+  if (OBS) return logLine('WARN', 'system', 'observe mode is read-only. Open http://localhost:8787/?mode=spawn to assign tasks to new agents.');
+  if (!LIVE) return logLine('WARN', 'system', 'demo mode: start the bridge with `node server.js` and open http://localhost:8787');
+  logLine('AUDIT', 'operator', `assigned to ${a.name}: ${m[3]}${m[2] ? '  [auto-execute]' : ''}`, a.div);
+  api('/api/task', { agent: a.id, name: a.name, role: a.role, div: a.div, model: a.model, prompt: m[3], auto: !!m[2] })
+    .catch(err => logLine('ERR', 'operator', err.message, a.div));
+}
+$('#cmd').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.value.trim()) { assign(e.target.value.trim()); e.target.value = ''; } });
+$('#mAssign').addEventListener('click', () => { const id = modalAgent; closeModal(); const c = $('#cmd'); c.value = '@' + id + ' '; c.focus(); });
+// keyboard: "/" focuses the command line
+addEventListener('keydown', e => { if (e.key === '/' && !/INPUT|TEXTAREA/.test((e.target.tagName || '')) && !modalAgent) { e.preventDefault(); $('#cmd').focus(); } });
+
+
+/* =====================================================================
+   OBSERVE MODE — the office shows your REAL Claude Code sessions.
+   Rooms = projects, desks = sessions (+ their active subagents).
+   Read-only: server.js reads ~/.claude/sessions and the transcripts.
+   ===================================================================== */
+let OBS = false;
+const obsRoom = {};            // project root -> room key (stable between updates)
+const obsMem = {};             // agent id -> {status, act}
+const hash32 = str => { let h = 2166136261; for (const ch of str) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
+const ago = ms => { const s = Math.max(0, Math.round((Date.now() - ms) / 1000)); return s < 90 ? s + 's' : s < 5400 ? Math.round(s / 60) + 'm' : s < 172800 ? Math.round(s / 3600) + 'h' : Math.round(s / 86400) + 'd'; };
+const kfmt = n => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? Math.round(n / 1e3) + 'k' : String(n);
+const lookFor = (seed, color) => { const h = hash32(seed); return { skin: SKIN[h % 5], hair: HAIR[(h >>> 3) % 8], style: ['short', 'long', 'bun', 'spiky', 'cap', 'phones'][(h >>> 6) % 6], shirt: color, cap: shade(color, -.25) }; };
+
+let obsOrder = [], obsPage = 0, lastOffice = null, hiddenBy = {};
+const obsSlots = {};
+let obsSolo = null; try { obsSolo = localStorage.getItem('po.project') || null; } catch { /* private mode */ }
+const obsRank = it => it.sleeping ? 5 : it.kind === 'sub' ? (it.status === 'working' ? 1.5 : 4) : it.status === 'waiting' ? 0 : it.status === 'working' ? 1 : 3;
+const soloKey = () => OBS && obsSolo ? 'command' : null;
+const PAGE = 4, obsKnown = new Set();
+function obsAssignRooms(items) {
+  const roots = [...new Set(items.map(i => i.root))];
+  obsOrder = obsOrder.filter(r => roots.includes(r)); const act = r => items.filter(i => i.root === r).reduce((m, i) => Math.max(m, (i.status === 'waiting' ? 3e15 : i.status === 'working' ? 2e15 : 0) + i.updatedAt), 0);
+  roots.filter(r => !obsOrder.includes(r)).sort((x, y) => act(y) - act(x)).forEach(r => obsOrder.push(r));
+  if (obsSolo && !roots.includes(obsSolo)) obsSetSolo(null, true);
+  const pages = Math.max(1, Math.ceil(obsOrder.length / PAGE)); obsPage = Math.min(obsPage, pages - 1);
+  for (const k in obsRoom) delete obsRoom[k];
+  if (obsSolo) obsRoom[obsSolo] = 'command';
+  else obsOrder.slice(obsPage * PAGE, obsPage * PAGE + PAGE).forEach((r, i) => obsRoom[r] = DKEYS[i]);
+  return obsSolo ? 1 : pages;
+}
+let soloDirty = false;
+function obsSetSolo(root, silent) {
+  obsSolo = root || null; try { obsSolo ? localStorage.setItem('po.project', obsSolo) : localStorage.removeItem('po.project'); } catch { /* ignore */ }
+  for (const k in obsSlots) delete obsSlots[k];
+  for (const k of DKEYS) { DIVS[k].label = ''; DIVS[k].tab = ''; }          // force relabel + static rebuild
+  soloDirty = true; filter = 'all'; $('#stage').classList.toggle('solo', !!obsSolo);
+  if (!silent && lastOffice) { AGENTS.length = 0; for (const k in AG) delete AG[k]; for (const k in obsMem) delete obsMem[k]; applyOffice(lastOffice); }
+}
+let selKey = '';
+function obsSelector(items) {
+  const sel = $('#projSel'), roots = [...new Set(items.map(i => i.root))];
+  const mark = r => { const it = items.filter(i => i.root === r); return it.some(i => i.status === 'waiting') ? '! ' : it.some(i => i.status === 'working') ? '● ' : it.some(i => !i.sleeping && i.kind === 'main') ? '○ ' : '· '; };
+  const opts = [['', `▦ All projects (${roots.length})`], ...roots.sort((a, b) => a.localeCompare(b)).map(r => [r, mark(r) + (items.find(i => i.root === r).project) + ` · ${items.filter(i => i.root === r).length}`])];
+  const key = JSON.stringify(opts) + '|' + (obsSolo || '');
+  if (key === selKey) return; selKey = key;
+  sel.hidden = false; sel.innerHTML = opts.map(([v, t]) => `<option value="${esc(v)}"${v === (obsSolo || '') ? ' selected' : ''}>${esc(t)}</option>`).join('');
+}
+$('#projSel').addEventListener('change', e => { obsSetSolo(e.target.value || null); });
+function obsPager(items, pages) {
+  const attn = pg => { const rs = obsOrder.slice(pg * PAGE, pg * PAGE + PAGE); const it = items.filter(i => rs.includes(i.root)); return it.some(i => i.status === 'waiting') ? 'waiting' : it.some(i => i.status === 'working') ? 'working' : ''; };
+  const legend = DKEYS.filter(k => !obsSolo || k === 'command').map(k => `<span style="--c:${DIVS[k].color}"><i></i>${esc(DIVS[k].label)}${obsSolo && hiddenBy[obsSolo] ? ' +' + hiddenBy[obsSolo] : ''}</span>`).join('');
+  const pager = pages > 1 && !obsSolo ? `<span class="pager">${Array.from({ length: pages }, (_, pg) => `<button class="ctl${pg === obsPage ? ' on' : ''}" data-pg="${pg}" title="Projects ${pg * PAGE + 1}–${Math.min(obsOrder.length, pg * PAGE + PAGE)}${attn(pg) ? ' · ' + attn(pg) : ''}">${pg + 1}${attn(pg) === 'waiting' ? ' !' : attn(pg) === 'working' ? ' •' : ''}</button>`).join('')}</span>` : '';
+  setHTML($('.rooms'), legend + pager);
+}
+$('.rooms').addEventListener('click', e => { const b = e.target.closest('[data-pg]'); if (b && lastOffice) { obsPage = +b.dataset.pg; applyOffice(lastOffice); fitZoom(); } });
+
+function applyOffice(o) {
+  lastOffice = o; const mains = o.sessions, all = [...mains, ...o.subs];
+  // same folder name in two places (e.g. ~/Work/app and ~/Notes/app) → add the parent folder
+  const nameOf = {}; all.forEach(i => { if (!(i.root in nameOf)) nameOf[i.root] = i.project; });      // trust the server's project name (e.g. "Grok Bot")
+  const base = r => nameOf[r] || r.split(/[\\/]/).filter(Boolean).pop() || r, cnt = {};
+  [...new Set(all.map(i => i.root))].forEach(r => { cnt[base(r)] = (cnt[base(r)] || 0) + 1; });
+  all.forEach(i => { const parts = i.root.split(/[\\/]/).filter(Boolean); i.project = cnt[base(i.root)] > 1 ? `${base(i.root)} (${parts[parts.length - 2] || '…'})` : base(i.root); });
+  const pages = obsAssignRooms(all), allIds = new Set(all.map(i => i.id));
+  // desks: stable slots per room; most urgent first, sleepers and finished helpers are evicted first when a room is full
+  const want = []; let hidden = 0; hiddenBy = {};
+  for (const [root, key] of Object.entries(obsRoom)) {
+    const items = all.filter(i => i.root === root).sort((a, b) => obsRank(a) - obsRank(b) || b.updatedAt - a.updatedAt);
+    const slots = (obsSlots[root] = (obsSlots[root] || [null, null, null, null]).map(id => items.some(i => i.id === id) ? id : null));
+    for (const it of items) {
+      if (slots.includes(it.id)) continue;
+      let k = slots.indexOf(null);
+      if (k < 0) { const worst = slots.map((id, n) => [obsRank(items.find(i => i.id === id)), n]).sort((a, b) => b[0] - a[0])[0]; if (worst[0] > obsRank(it)) k = worst[1]; }
+      if (k >= 0) slots[k] = it.id;
+    }
+    const placed = items.filter(i => slots.includes(i.id)); hiddenBy[root] = items.length - placed.length; hidden += hiddenBy[root];
+    const headId = (placed.filter(i => i.kind === 'main' && !i.sleeping).sort((a, b) => obsRank(a) - obsRank(b) || a.startedAt - b.startedAt)[0] || {}).id;
+    placed.forEach(it => want.push({ it, key, slot: slots.indexOf(it.id), head: it.id === headId }));
+  }
+  const wantIds = new Set(want.map(w => w.it.id));
+  for (let i = AGENTS.length - 1; i >= 0; i--) if (!wantIds.has(AGENTS[i].id)) { const g = AGENTS[i]; if (!allIds.has(g.id)) logLine('INFO', g.name, 'left the office (session ended)', g.div); delete AG[g.id]; delete obsMem[g.id]; AGENTS.splice(i, 1); }
+
+  // room labels = project names
+  let relabel = false;
+  for (const k of DKEYS) {
+    const root = Object.keys(obsRoom).find(r => obsRoom[r] === k), name = root ? ((all.find(i => i.root === root) || {}).project || '') : '';
+    const label = name ? name.toUpperCase().slice(0, 14) : 'VACANT', tab = name ? name.slice(0, 16) : 'Vacant';
+    if (DIVS[k].label !== label) { DIVS[k].label = label; DIVS[k].tab = tab; relabel = true; }
+  }
+  if (relabel || soloDirty) { soloDirty = false; buildStatic(); renderTabs(); fitZoom(); }
+  obsPager(all, pages); obsSelector(all);
+
+  const first = !Object.keys(obsMem).length && !AGENTS.length;
+  want.forEach(({ it, key, slot, head }) => {
+    let a = AG[it.id]; const D = DIVS[key], rel = DESK_REL[slot];
+    if (!a) {
+      a = { id: it.id, idx: slot, phase: Math.random() * 10, progress: 0, dur: 10, timer: 0, pending: null, revisionOf: null, tasks: [], log: [], focusUntil: 0, stats: { done: 0, success: 100, latency: 0, tokens: 0, ctx: 0, errors: 0, uptime: 0 } };
+      AGENTS.push(a); AG[it.id] = a; obsMem[it.id] = { status: null, act: null };
+      if (!first && !obsKnown.has(it.id)) logLine('INFO', it.name, `entered the office (${it.project})`, key);
+    }
+    obsKnown.add(it.id); const moved = a.div !== key || a.slot !== slot;
+    a.sid = it.sessionId; Object.assign(a, { sleeping: !!it.sleeping, done: !!it.done, div: key, slot, head, look: lookFor(it.sessionId || it.id, D.color), provider: it.provider || 'claude', name: clip(({ codex: 'CX · ', gemini: 'GM · ', grok: 'GK · ' }[it.provider] || '') + it.name, 18), title: it.name, root: it.root, kind: it.kind,
+      role: it.kind === 'sub' ? 'Subagent · ' + it.role : ({ codex: 'Codex', gemini: 'Gemini CLI', grok: 'Grok Build', grokbot: 'Grok Bot app' }[it.provider] || 'Claude Code') + (it.sleeping ? ' · sleeping session' : it.entrypoint && it.provider === 'claude' ? ' · ' + it.entrypoint : ''), model: it.model });
+    if (moved) { a.desk = [D.ox + rel[0], D.oy + rel[1]]; const [x, y] = iso(a.desk[0] + 1.5, a.desk[1] + 1.5, 0); a.ax = Math.round(x); a.ay = Math.round(y); }
+    const m = obsMem[it.id], act = it.activity;
+    const prev = a.state; a.state = it.status;
+    a.subtask = it.status === 'waiting' ? 'Needs you: ' + (it.waitingFor || 'permission or a question')
+      : it.status === 'working' ? (act ? act.text : 'Working…')
+      : it.sleeping ? `Not running · last active ${ago(it.since)} ago${act ? ' · ' + act.text : ''}`
+      : it.done ? `Finished ${ago(it.since)} ago${act ? ' · ' + act.text : ''}`
+      : `Idle ${it.since ? 'for ' + ago(it.since) : ''}${act ? ' · last: ' + act.text : ''}`;
+    a.progress = it.status === 'working' ? Math.max(a.progress, 8) : 100;
+    a.tasks = [{ id: it.pid || (it.provider && it.provider !== 'claude' ? it.provider : 'sub'), title: it.name, kind: 'active' }];
+    a.stats.tokens = it.tokens; a.stats.done = it.tools;
+    a.specs = [['Project', it.project], ['Tool', { codex: 'Codex', gemini: 'Gemini CLI', grok: 'Grok Build', grokbot: 'Grok Bot app' }[it.provider] || 'Claude Code'], ['Status', (it.sleeping ? 'sleeping' : it.done ? 'finished' : it.status) + (it.since ? ' · ' + ago(it.since) : '')], ['Model', it.model], ['Context', kfmt(it.ctx) + ' tok'],
+      ['Tool calls*', fmt(it.tools)], ['Tokens*', kfmt(it.tokens)], ['Started', it.startedAt ? ago(it.startedAt) + ' ago' : '—'], ['Process', it.sleeping ? 'not running' : it.pid ? 'pid ' + it.pid : (it.provider && it.provider !== 'claude') ? 'running' : it.done ? 'finished' : 'subagent'], ['Kind', it.kind === 'sub' ? 'subagent' : 'session']];
+    { const rc = window.RPGV && RPGV.char(it.sessionId); a.plate = rc ? `${a.name} L${rc.level}` : null; if (rc) a.specs.splice(1, 0, ['Level', `Lv ${rc.level} · ${rc.title}`], ['XP', fmt(rc.xp) + ' / ' + fmt(rc.hi)]); }
+    // log: status changes + new activity (silent on first sight so reloads don't flood)
+    if (m.status !== null && m.status !== it.status) agentLog(a, it.status === 'waiting' ? 'WARN' : it.status === 'working' ? 'INFO' : 'OK', it.status === 'waiting' ? a.subtask : it.status === 'working' ? 'started working' : 'finished — now idle');
+    if (m.act !== null && act && act.id !== m.act) agentLog(a, 'TASK', act.text);
+    if (m.status === null && !first) { /* new desk */ }
+    m.status = it.status; m.act = act ? act.id : '';
+    if (prev && prev !== a.state && a.state === 'working') burst(a, 'WORKING', '#5be37d', ['#5be37d', '#b6ffc9']);
+  });
+
+  // decisions: (1) permission requests relayed by the hook (answerable here), (2) other sessions paused waiting for you (read-only)
+  const permItems = (o.perms || []).map(pm => ({ pm, it: mains.find(x => x.sessionId === pm.sessionId) })).filter(x => x.it);
+  const permSess = new Set(permItems.map(x => x.it.id)), wantD = [];
+  permItems.forEach(({ pm, it }) => wantD.push({ id: 'P' + pm.id, it, pm }));
+  all.filter(x => x.status === 'waiting' && !permSess.has(x.id)).forEach(it => wantD.push({ id: 'W' + it.id, it }));
+  const wantDIds = new Set(wantD.map(x => x.id));
+  for (let i = decisions.length - 1; i >= 0; i--) if (!wantDIds.has(decisions[i].id)) decisions.splice(i, 1);
+  wantD.forEach(({ id, it, pm }) => {
+    const key = obsRoom[it.root] || 'command', off = !obsRoom[it.root], ex = decisions.find(d => d.id === id);
+    if (ex) { ex.offpage = off; ex.div = key; return; }
+    const d = pm
+      ? { permId: pm.id, perm: true, title: pm.tool + ': ' + pm.summary, detail: `“${it.name}” in ${it.project} wants to run this.`, full: pm.full, sugg: pm.suggestions, created: pm.created, ticket: it.pid || 0 }
+      : { title: 'Needs you: ' + (it.waitingFor || 'permission or a question'), detail: `“${it.name}” in ${it.project} is paused until you answer in Claude Code.`, created: it.since || Date.now(), ticket: it.pid || 0 };
+    decisions.push({ id, agent: it.id, div: key, offpage: off, observed: true, root: it.root, project: it.project, who: it.name, prio: 1, blocks: 1, tok: 0, held: false, rev: 0, fresh: true, esc: false, ...d });
+    if (AG[it.id]) burst(AG[it.id], '!', '#ffc83d', ['#ffc83d', '#fff3c4']);
+  });
+
+  // header: per-room KPIs, or project KPIs when one project is open
+  if (obsSolo) {
+    const here = AGENTS, subs = here.filter(a => a.kind === 'sub');
+    const set = (k, name, val, goal, today, suffix) => Object.assign(k, { name, div: 'command', val, goal: Math.max(1, goal), today, suffix, f: v => String(v) });
+    set(KPIS[0], 'AGENTS BUSY', here.filter(a => a.state === 'working').length, here.length, here.length, ' desks');
+    set(KPIS[1], 'NEED YOU', here.filter(a => a.state === 'waiting').length, here.length, 0, '');
+    set(KPIS[2], 'SUBAGENTS ACTIVE', subs.filter(a => !a.done && a.state === 'working').length, subs.length, subs.length, ' recent');
+    set(KPIS[3], 'SLEEPING', here.filter(a => a.sleeping).length, here.length, 0, '');
+  } else KPIS.forEach((k, i) => {
+    const key = DKEYS[i], here = AGENTS.filter(a => a.div === key);
+    Object.assign(k, { name: 'AGENTS BUSY', div: key, val: here.filter(a => a.state === 'working').length, goal: Math.max(1, here.length), today: here.reduce((n, a) => n + a.stats.done, 0), suffix: ' tools', f: v => String(v) });
+  });
+  const delta = o.tokens - (TOK.used || 0); if (delta > 0 && TOK.used > 0) liveTok.push({ t: Date.now(), n: delta, c: 0 }); TOK.used = o.tokens;
+  if (hidden !== obsHidden) { obsHidden = hidden; if (hidden) logLine('WARN', 'system', `${hidden} desk(s) don't fit (4 per room) — sleepers and finished helpers go first`, 'command'); }
+  renderKPIs(); renderQueue(); renderTabs(); renderBadge(); renderConsoleFoot(); updateLegend(); refreshModal();
+}
+let obsHidden = 0;
+
+function resolveObs(id, act) {
+  const d = decisions.find(x => x.id === id); if (!d || !d.perm) return;
+  const verb = { allow: 'ALLOWED', always: 'ALWAYS-ALLOWED', deny: 'DENIED' }[act]; if (!verb) return;
+  api('/api/perm/decide', { id: d.permId, behavior: act === 'deny' ? 'deny' : 'allow', suggestion: act === 'always' ? 0 : undefined }).then(() => {
+    const i = decisions.indexOf(d); if (i >= 0) decisions.splice(i, 1);
+    stats.respTotal += (Date.now() - d.created) / 1000; stats.respN++; act === 'deny' ? stats.rejected++ : stats.approved++;
+    logLine('AUDIT', 'operator', `${verb} ${d.title} — ${d.who}`, d.div);
+    renderQueue(); renderTabs(); renderBadge(); renderConsoleFoot();
+  }).catch(err => logLine('ERR', 'operator', 'decision failed: ' + err.message, d.div));
+}
+
+function obsStep(dt) {
+  const now = Date.now(); while (liveTok.length && now - liveTok[0].t > 60000) liveTok.shift();
+  const target = liveTok.reduce((s, e) => s + e.n, 0) / 60; TOK.rate += (target - TOK.rate) * Math.min(1, dt * 2);
+  AGENTS.forEach(a => { if (a.state === 'working') a.progress += (94 - a.progress) * dt * .03; });
+}
+
+function enterObserve(h) {
+  OBS = true;
+  AGENTS.length = 0; for (const k in AG) delete AG[k];
+  decisions.length = 0; Object.assign(TOK, { budget: h.budget, used: 0, rate: 0, hist: Array.from({ length: 30 }, () => 0) });
+  $('#log').innerHTML = ''; logBuf.length = 0; stats.approved = stats.rejected = stats.revised = 0;
+  $('#mAssign').style.display = 'none';
+  const tl = $('#tok .tok-h span'); if (tl) tl.textContent = 'TOKENS OBSERVED';
+  $('#liveTag').textContent = 'LIVE'; setMode('live', 'OBSERVING · REAL SESSIONS'); $('#modeTag').title = 'Click to switch to SPAWN mode (assign new tasks)';
+  $('.local').textContent = '● OBSERVING · FROM ~/.claude · NOTHING LEAVES THIS MACHINE';
+  $('#cmd').placeholder = 'observing real sessions — open the page with ?mode=spawn to assign tasks to new agents';
+  logLine('SYS', 'system', 'observing your real Claude Code sessions (read-only): rooms = projects, desks = sessions', 'command');
+  logLine('SYS', 'system', 'status comes from ~/.claude/sessions, activity from the transcripts; tool calls*/tokens* count from when the bridge started', 'command');
+  if (h.hookInstalled) logLine('SYS', 'system', 'permission hook installed: prompts from your sessions appear in the Decision Console (the terminal prompt still works too)', 'command');
+  else logLine('WARN', 'system', 'read-only: to approve/deny permission prompts from here, run `node install-hook.js` once (backup is made; undo with --uninstall)', 'command');
+  for (const k of DKEYS) { DIVS[k].label = ''; DIVS[k].tab = ''; }          // force the first relabel
+  const es = new EventSource('/events');
+  es.onmessage = e => { try { const ev = JSON.parse(e.data); if (ev.type === 'hello') { if (ev.rpg && window.RPGV) { RPGV.set(ev.rpg); } applyOffice(ev.office); } else if (ev.type === 'rpg' && window.RPGV) { RPGV.set(ev.state); if (lastOffice) applyOffice(lastOffice); } else if (ev.type === 'rpg_event' && window.onRpgEvent) window.onRpgEvent(ev); else if (ev.type === 'office') applyOffice(ev); else if (ev.type === 'chat' && window.__chatEvent) window.__chatEvent(ev); } catch (err) { console.error(err); } };
+  es.onerror = () => setMode('warn', 'BRIDGE OFFLINE · RETRYING');
+  es.onopen = () => setMode('live', 'OBSERVING · REAL SESSIONS');
+}
+$('#modeTag').addEventListener('click', () => { if (OBS) location.search = '?mode=spawn'; else if (LIVE) location.search = '?mode=observe'; });
+
+/* ---------- boot ---------- */
+(function boot() {
+  // logo
+  const lc = $('#logo').getContext('2d'); const lg = ['..........11..........', '.........1221.........']; lc.imageSmoothingEnabled = false;
+  const px = (x, y, w, h, c) => { lc.fillStyle = c; lc.fillRect(x, y, w, h); };
+  px(2, 8, 16, 11, '#6a5acd'); px(2, 8, 16, 2, '#9b8cff'); px(4, 4, 12, 4, '#8f7cf0'); px(6, 1, 8, 3, '#b57bff'); px(9, 0, 2, 1, '#f5c542');
+  [[4, 11], [8, 11], [12, 11], [4, 15], [12, 15]].forEach(([x, y]) => px(x, y, 3, 3, '#ffe9a0')); px(8, 14, 4, 5, '#2a2250');
+
+  // initial states
+  const init = { audit: 'waiting', seo: 'waiting', price: 'waiting', prop: 'waiting', lead: 'waiting', thumb: 'idle', outreach: 'idle', ops: 'idle' };
+  const seed = { audit: ['command', 2], seo: ['content', 0], price: ['autonomous', 0], prop: ['agency', 0], lead: ['autonomous', 1] };
+  AGENTS.forEach(a => {
+    const s = init[a.id] || 'working';
+    if (s === 'working') { setWorking(a, pick(WORK[a.div]), rand(8, 20), false); a.timer = rand(2, a.dur); a.progress = (1 - a.timer / a.dur) * 100; }
+    else if (s === 'idle') { a.state = 'idle'; a.subtask = 'Task complete — standing by'; a.progress = 100; a.timer = rand(4, 12); a.tasks = []; }
+  });
+  for (const id in seed) {
+    const a = AG[id], [dv, i] = seed[id]; a.tasks = [{ id: ++TICKET, title: pick(WORK[a.div]), kind: 'active' }];
+    requestApproval(a, ASK[dv][i], 0);
+    const d = decisions[decisions.length - 1]; d.created -= randi(15, 110) * 1000; d.fresh = false; a.log.length = 0;
+    agentLog(a, 'WARN', `needs approval: ${d.title}`);
+  }
+  logBuf.length = 0; $('#log').innerHTML = '';
+  logLine('SYS', 'system', 'Pixel Office OS v0.9 booted — 14 agents online, 4 divisions mounted', 'command');
+  logLine('SYS', 'system', 'telemetry source: local only · 0 external API calls', 'command');
+  AGENTS.filter(a => a.state === 'working').slice(0, 4).forEach(a => logLine('TASK', 'Chief of Staff', `queued task #${a.tasks[0].id} → ${a.name}`, 'command'));
+  decisions.forEach(d => logLine('WARN', AG[d.agent].name, `needs approval: ${d.title}`, d.div));
+  TOK.hist = Array.from({ length: 30 }, () => 300 + Math.random() * 60);
+  renderKPIs(); renderTabs(); renderQueue(); renderBadge(); renderConsoleFoot(); updateLegend(); renderTokens(); drawSpark();
+  fitZoom(); requestAnimationFrame(loop);
+  if (location.protocol.startsWith('http')) fetch('/api/health').then(r => r.ok ? r.json() : null).then(h => {
+    if (!h || !h.ok) return;
+    const want = new URLSearchParams(location.search).get('mode');
+    if (want === 'spawn' || (want !== 'observe' && !(h.observer && h.observer.sessions))) enterLive(h); else enterObserve(h);
+  }).catch(() => {});
+})();
+</script>
+<script src="ui/rpg-core.js"></script>
+<script src="ui/skins.js"></script>
+<script src="ui/progress.js"></script>
+<script src="ui/repos.js"></script>
+<script>
+'use strict';
+/* =====================================================================
+   SECOND BRAIN — browse any folder of markdown notes (Obsidian vault, graphify output…).
+   The folder is chosen by the user and stored in ~/.pixel-office/config.json (never in this repo).
+   ===================================================================== */
+(() => {
+  const $b = s => document.querySelector(s);
+  const E = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const unE = s => s.replace(/&quot;/g, '"').replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
+  const served = location.protocol.startsWith('http');
+  const get = async (u) => { const r = await fetch(u); const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || r.statusText); return j; };
+  const post = async (u, b) => { const r = await fetch(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }); const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || r.statusText); return j; };
+  const dirname = p => p.includes('/') ? p.slice(0, p.lastIndexOf('/')) : '';
+  const joinRel = (from, rel) => { const parts = (rel.startsWith('/') ? rel.slice(1) : (dirname(from) ? dirname(from) + '/' + rel : rel)).split('/'); const out = []; for (const x of parts) { if (x === '..') out.pop(); else if (x && x !== '.') out.push(x); } return out.join('/'); };
+
+  /* ---------- markdown (safe: everything is escaped first; only known tags are emitted) ---------- */
+  function inline(src, from) {
+    const st = []; const keep = h => '\u0000' + (st.push(h) - 1) + '\u0000';
+    let t = src.replace(/`([^`\n]+)`/g, (_, c) => keep('<code>' + E(c) + '</code>'));
+    t = E(t);
+    t = t.replace(/!\[\[([^\]|]+?)(?:\|([^\]]*))?\]\]/g, (_, n, o) => { n = unE(n).trim(); return /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(n) ? keep(`<img class="emb" alt="${E(n)}" src="/api/brain/attach?name=${encodeURIComponent(n)}"${/^\d+$/.test(o || '') ? ` width="${o}"` : ''}>`) : keep(`<a class="wl" data-wl="${E(n)}" data-from="${E(from)}">⧉ ${E(n)}</a>`); });
+    t = t.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;[^)]*&quot;)?\)/g, (_, alt, s) => { s = unE(s); return /^https?:/i.test(s) ? keep(`<a href="${E(s)}" target="_blank" rel="noopener noreferrer">🖼 ${alt || E(s)}</a>`) : keep(`<img class="emb" alt="${alt}" src="/api/brain/file?p=${encodeURIComponent(joinRel(from, decodeURIComponent(s)))}">`); });
+    t = t.replace(/\[\[([^\]|#]+?)(?:#([^\]|]*))?(?:\|([^\]]*))?\]\]/g, (_, n, h, a) => keep(`<a class="wl" data-wl="${E(unE(n).trim())}" data-from="${E(from)}">${a || E(unE(n).trim())}</a>`));
+    t = t.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, txt, u) => { u = unE(u); if (/^(https?:|mailto:)/i.test(u)) return keep(`<a href="${E(u)}" target="_blank" rel="noopener noreferrer">${txt}</a>`); const pth = u.split('#')[0]; return /\.md$/i.test(pth) ? keep(`<a class="wl" data-path="${E(joinRel(from, decodeURIComponent(pth)))}">${txt}</a>`) : txt; });
+    t = t.replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>').replace(/__([^_\n]+)__/g, '<b>$1</b>').replace(/(^|[^*\w])\*([^*\n]+)\*(?!\w)/g, '$1<i>$2</i>').replace(/(^|[^_\w])_([^_\n]+)_(?!\w)/g, '$1<i>$2</i>')
+      .replace(/~~([^~\n]+)~~/g, '<s>$1</s>').replace(/==([^=\n]+)==/g, '<mark>$1</mark>').replace(/(^|\s)#([A-Za-z][\w/-]*)/g, '$1<span class="tag">#$2</span>')
+      .replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, (_, p, u) => `${p}<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
+    return t.replace(/\u0000(\d+)\u0000/g, (_, i) => st[+i]);
+  }
+  const CALL = { note: '#5cc8ff', info: '#5cc8ff', tip: '#5be37d', success: '#5be37d', warning: '#ffc83d', caution: '#ffc83d', danger: '#ff5d6c', error: '#ff5d6c', bug: '#ff5d6c', question: '#ffc83d', quote: '#b8b2e6', example: '#b57bff', abstract: '#5cc8ff', todo: '#5cc8ff' };
+  function md(text, from) {
+    let props = ''; const fm = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(text);
+    if (fm) { text = text.slice(fm[0].length); const rows = fm[1].split(/\r?\n/).map(l => /^([\w-]+):\s*(.*)$/.exec(l)).filter(Boolean); if (rows.length) props = '<div class="props">' + rows.map(r => `<b>${E(r[1])}</b><span>${E(r[2])}</span>`).join('') + '</div>'; }
+    const L = text.replace(/\r/g, '').split('\n'), out = []; let i = 0;
+    const blockStart = l => /^(#{1,6}\s|```|\s*>|\s*([-*+]|\d+[.)])\s|\s{0,3}([-*_])(\s*\3){2,}\s*$)/.test(l);
+    while (i < L.length) {
+      const l = L[i];
+      if (/^\s*```/.test(l)) { const code = []; i++; while (i < L.length && !/^\s*```/.test(L[i])) code.push(L[i++]); i++; out.push(`<pre><code>${E(code.join('\n'))}</code></pre>`); continue; }
+      if (!l.trim()) { i++; continue; }
+      let m = /^(#{1,6})\s+(.*?)\s*#*\s*$/.exec(l); if (m) { out.push(`<h${m[1].length}>${inline(m[2], from)}</h${m[1].length}>`); i++; continue; }
+      if (/^\s{0,3}([-*_])(\s*\1){2,}\s*$/.test(l)) { out.push('<hr>'); i++; continue; }
+      if (/^\s*>/.test(l)) {
+        const q = []; while (i < L.length && /^\s*>/.test(L[i])) q.push(L[i++].replace(/^\s*>\s?/, ''));
+        const c = /^\[!(\w+)\][+-]?\s*(.*)$/.exec(q[0]);
+        out.push(c ? `<div class="callout" style="--c:${CALL[c[1].toLowerCase()] || '#5cc8ff'}"><b>${inline(c[2] || c[1], from)}</b>${md(q.slice(1).join('\n'), from)}</div>` : `<blockquote>${md(q.join('\n'), from)}</blockquote>`); continue;
+      }
+      if (l.includes('|') && i + 1 < L.length && /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(L[i + 1])) {
+        const cells = r => r.trim().replace(/^\||\|$/g, '').split('|').map(x => x.trim());
+        const head = cells(l); i += 2; const rows = []; while (i < L.length && L[i].includes('|') && L[i].trim()) rows.push(cells(L[i++]));
+        out.push(`<table><thead><tr>${head.map(h => `<th>${inline(h, from)}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${inline(c, from)}</td>`).join('')}</tr>`).join('')}</tbody></table>`); continue;
+      }
+      if (/^(\s*)([-*+]|\d+[.)])\s+/.test(l)) {
+        const items = []; while (i < L.length && (/^(\s*)([-*+]|\d+[.)])\s+/.test(L[i]) || (L[i].trim() && /^\s{2,}\S/.test(L[i]) && items.length))) {
+          const mm = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/.exec(L[i]); if (mm) items.push({ ind: mm[1].replace(/\t/g, '    ').length, ord: /\d/.test(mm[2]), txt: mm[3] }); else items[items.length - 1].txt += ' ' + L[i].trim(); i++;
+        }
+        const build = (lvl) => { let h = '', k = 0; while (k < items.length) { const base = items[k].ind; if (base < lvl) break; const ord = items[k].ord, tag = ord ? 'ol' : 'ul'; h += `<${tag}>`;
+          while (k < items.length && items[k].ind >= base) { if (items[k].ind > base) { const sub = []; while (k < items.length && items[k].ind > base) sub.push(items[k++]); const saved = items.splice(0, items.length, ...sub); h += build(base + 1); items.splice(0, items.length, ...saved); continue; }
+            const it = items[k++], tk = /^\[( |x|X)\]\s+(.*)$/.exec(it.txt); h += tk ? `<li class="task">${tk[1] === ' ' ? '☐' : '☑'} ${inline(tk[2], from)}</li>` : `<li>${inline(it.txt, from)}</li>`; }
+          h += `</${tag}>`; } return h; };
+        out.push(build(0)); continue;
+      }
+      const p = []; while (i < L.length && L[i].trim() && !(p.length && blockStart(L[i]))) p.push(L[i++]);
+      out.push(`<p>${p.map(x => inline(x, from)).join('<br>')}</p>`);
+    }
+    return props + out.join('\n');
+  }
+
+  /* ---------- state + setup ---------- */
+  const brain = $b('#brain'); let st = { notes: [], current: null, hist: [], view: 'note' }, status = null, graphs = {}, gv = null;
+  const msg = (el, html) => { el.innerHTML = `<div style="padding:24px;color:var(--dim)">${html}</div>`; };
+
+  async function init() {
+    if (!served) { brain.classList.add('setup'); $b('#bSetup').innerHTML = '<h2>Second Brain needs the bridge</h2><p>Start <code>node server.js</code> and open <code>http://localhost:8787</code>. The Second Brain reads your notes through the local bridge (nothing leaves your machine).</p>'; return; }
+    try { status = await get('/api/brain/status'); } catch (e) { return msg($b('#bSetup'), 'Could not reach the bridge: ' + E(e.message)); }
+    if (!status.configured) return setup(); loadVault();
+  }
+
+  async function setup(dir) {
+    brain.classList.add('setup'); const el = $b('#bSetup');
+    let b; try { b = await get('/api/brain/browse' + (dir ? '?dir=' + encodeURIComponent(dir) : '')); } catch (e) { b = null; }
+    const det = (status && status.detected) || [];
+    el.innerHTML = `<h2>Connect your Second Brain</h2>
+      <p>Point Pixel Office at a folder of markdown notes: an Obsidian vault, a graphify output folder, or any docs folder. It is only read, never changed, and the choice is saved on this computer only (<code>~/.pixel-office/config.json</code>).</p>
+      ${det.length ? `<p><b>Found on this computer</b></p><ul>${det.map(v => `<li><span title="${E(v.path)}"><b>${E(v.name)}</b> <small>${E(v.path)}</small></span>${v.graphify ? '<small>graphify ✔</small>' : ''}<button class="ctl" data-use="${E(v.path)}">USE</button></li>`).join('')}</ul>` : '<p style="color:var(--dim)">No Obsidian vaults were detected automatically. Browse for a folder below or paste a path.</p>'}
+      <p><b>Browse</b></p>
+      ${b ? `<div class="crumb">${E(b.dir)}${b.isVault ? '<span class="badge2">Obsidian vault</span>' : ''} <small style="color:var(--dim)">· ${b.notes} notes here</small></div>
+        <div class="row"><button class="ctl" data-use="${E(b.dir)}">USE THIS FOLDER</button>${b.parent ? `<button class="ctl" data-go="${E(b.parent)}">↑ UP</button>` : ''}</div>
+        <div class="dirs">${b.dirs.map(d => `<button data-go="${E(b.dir + '/' + d.name)}">▸ ${E(d.name)}${d.vault ? '<span class="badge2">vault</span>' : ''}</button>`).join('') || '<div style="padding:8px;color:var(--dim)">No sub-folders</div>'}</div>` : ''}
+      <p><b>Or paste a path</b></p><div class="row"><input id="bPath" placeholder="/path/to/your/vault"><button class="ctl" id="bPathGo">USE PATH</button></div>
+      <p id="bSetErr" style="color:#ff9aa5"></p>
+      ${status && status.configured ? '<div class="row"><button class="ctl" id="bCancel">CANCEL</button></div>' : ''}`;
+    el.onclick = async e => {
+      const use = e.target.closest('[data-use]'), go = e.target.closest('[data-go]');
+      if (go) return setup(go.dataset.go);
+      if (use) return choose(use.dataset.use);
+      if (e.target.id === 'bPathGo') return choose($b('#bPath').value.trim());
+      if (e.target.id === 'bCancel') { brain.classList.remove('setup'); }
+    };
+  }
+  async function choose(path) {
+    try { await post('/api/brain/vault', { path }); status = await get('/api/brain/status'); brain.classList.remove('setup'); st = { notes: [], current: null, hist: [], view: 'note' }; graphs = {}; loadVault(); }
+    catch (e) { const x = $b('#bSetErr'); if (x) x.textContent = 'Could not use that folder: ' + e.message; }
+  }
+  $b('#bChange').addEventListener('click', () => setup());
+
+  /* ---------- tree + notes ---------- */
+  async function loadVault() {
+    $b('#bName').textContent = status.name; $b('#bGfyTab').disabled = !status.graphify;
+    $b('#bGfyTab').title = status.graphify ? 'Graph from graphify-out/graph.json' : 'No graphify-out/graph.json found in this folder';
+    try { const t = await get('/api/brain/tree'); st.notes = t.notes; } catch (e) { return setup(); }
+    renderTree(); setView('note');
+    const first = st.notes.find(n => /^(readme|index|home|agents|claude)\.md$/i.test(n.p)) || st.notes[0];
+    if (first) openNote(first.p, true); else $b('#bNote').innerHTML = '<p>This folder has no markdown notes yet.</p>';
+  }
+  function renderTree() {
+    const root = { dirs: {}, files: [] };
+    for (const n of st.notes) { let cur = root; const parts = n.p.split('/'); parts.slice(0, -1).forEach(d => cur = (cur.dirs[d] = cur.dirs[d] || { dirs: {}, files: [] })); cur.files.push({ name: parts[parts.length - 1], p: n.p }); }
+    const draw = (node, open) => Object.keys(node.dirs).sort().map(d => `<details${open ? ' open' : ''}><summary>${E(d)}</summary><div>${draw(node.dirs[d], false)}</div></details>`).join('')
+      + node.files.sort((a, b) => a.name.localeCompare(b.name)).map(f => `<button data-p="${E(f.p)}" title="${E(f.p)}">${E(f.name.replace(/\.md$/i, ''))}</button>`).join('');
+    $b('#bTree').innerHTML = draw(root, false); $b('#bTree').dataset.mode = 'tree';
+  }
+  $b('#bTree').addEventListener('click', e => { const b = e.target.closest('[data-p]'); if (b) openNote(b.dataset.p); });
+  let tsearch; $b('#bSearch').addEventListener('input', e => {
+    clearTimeout(tsearch); const q = e.target.value.trim();
+    if (q.length < 2) { renderTree(); markCurrent(); return; }
+    tsearch = setTimeout(async () => { const r = await get('/api/brain/search?q=' + encodeURIComponent(q)).catch(() => []); $b('#bTree').innerHTML = r.length ? r.map(x => `<button class="b-res" data-p="${E(x.p)}">${E(x.p.replace(/\.md$/i, ''))}${x.snip ? `<small>${E(x.snip)}</small>` : ''}</button>`).join('') : '<div style="padding:10px;color:var(--dim)">No matches</div>'; }, 200);
+  });
+  function markCurrent() { document.querySelectorAll('#bTree [data-p]').forEach(b => { const on = b.dataset.p === st.current; b.classList.toggle('on', on); if (on) { for (let d = b.parentElement; d && d.id !== 'bTree'; d = d.parentElement) if (d.tagName === 'DETAILS') d.open = true; } }); }
+
+  async function openNote(p, noHist) {
+    setView('note');
+    try {
+      const n = await get('/api/brain/note?p=' + encodeURIComponent(p));
+      if (!noHist && st.current) st.hist.push(st.current); st.current = n.p;
+      $b('#bNote').innerHTML = md(n.text, n.p) + (n.backlinks.length ? `<div class="b-bl">Linked from: ${n.backlinks.map(b => `<button data-path="${E(b)}">${E(b.replace(/\.md$/i, ''))}</button>`).join('')}</div>` : '');
+      $b('#bBack').innerHTML = `${st.hist.length ? '<button id="bBackBtn">← back</button>' : ''}<span>${E(n.p)}</span>`; $b('#bNote').scrollTop = 0; markCurrent();
+    } catch (e) { $b('#bNote').innerHTML = `<p style="color:#ff9aa5">Could not open ${E(p)}: ${E(e.message)}</p>`; }
+  }
+  $b('#bBack').addEventListener('click', e => { if (e.target.id === 'bBackBtn' && st.hist.length) { const p = st.hist.pop(); openNote(p, true); } });
+  $b('#bNote').addEventListener('click', async e => {
+    const a = e.target.closest('a.wl, button[data-path]'); if (!a) return; e.preventDefault();
+    if (a.dataset.path) return openNote(a.dataset.path);
+    const r = await get(`/api/brain/resolve?from=${encodeURIComponent(a.dataset.from || '')}&to=${encodeURIComponent(a.dataset.wl)}`).catch(() => ({}));
+    if (r.p) openNote(r.p); else { a.classList.add('miss'); a.title = 'No note with that name'; }
+  });
+
+  /* ---------- views: note / link graph / graphify ---------- */
+  function setView(v) {
+    st.view = v; document.querySelectorAll('#bVtabs [data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+    $b('#bNote').style.display = v === 'note' ? '' : 'none'; $b('#bBack').style.display = v === 'note' ? '' : 'none'; $b('#bGraphWrap').classList.toggle('on', v !== 'note');
+    $b('#bReport').hidden = !(status && status.graphify);
+    if (v !== 'note') showGraph(v);
+  }
+  $b('#bVtabs').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (b && !b.disabled) setView(b.dataset.v); if (e.target.id === 'bReport') openNote('graphify-out/GRAPH_REPORT.md'); });
+  async function showGraph(kind) {
+    if (!gv) gv = new GraphView($b('#bGraph'));
+    try { graphs[kind] = graphs[kind] || await get('/api/brain/graph?kind=' + kind); } catch (e) { $b('#bGinfo').textContent = 'Could not load graph: ' + e.message; return; }
+    gv.set(graphs[kind], n => { if (n.note) openNote(n.note); });
+  }
+
+  /* ---------- force-directed graph (spatial-hash repulsion so thousands of nodes stay smooth) ---------- */
+  class GraphView {
+    constructor(cv) {
+      this.cv = cv; this.ctx = cv.getContext('2d'); this.view = { x: 0, y: 0, k: 1 }; this.alpha = 0; this.sel = null; this.hover = null; this.raf = 0;
+      const down = e => { const p = this.world(e), n = this.pick(p); this.drag = { n, sx: e.clientX, sy: e.clientY, vx: this.view.x, vy: this.view.y, moved: false }; if (n) { n.fx = true; this.kick(.3); } cv.setPointerCapture(e.pointerId); cv.style.cursor = 'grabbing'; };
+      const move = e => {
+        if (this.drag) { const d = this.drag; if (Math.abs(e.clientX - d.sx) + Math.abs(e.clientY - d.sy) > 3) d.moved = true;
+          if (d.n) { const p = this.world(e); d.n.x = p.x; d.n.y = p.y; this.kick(.3); } else { this.view.x = d.vx + (e.clientX - d.sx); this.view.y = d.vy + (e.clientY - d.sy); this.draw(); } return; }
+        const n = this.pick(this.world(e)); if (n !== this.hover) { this.hover = n; cv.style.cursor = n ? 'pointer' : 'grab'; this.draw(); }
+      };
+      const up = e => { const d = this.drag; this.drag = null; cv.style.cursor = 'grab'; if (!d) return; if (d.n) { d.n.fx = false; if (!d.moved) this.select(d.n); } else if (!d.moved) this.select(null); };
+      cv.addEventListener('pointerdown', down); cv.addEventListener('pointermove', move); cv.addEventListener('pointerup', up);
+      cv.addEventListener('dblclick', e => { const n = this.pick(this.world(e)); if (n && this.onOpen) this.onOpen(n); });
+      cv.addEventListener('wheel', e => { e.preventDefault(); const r = cv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top, k0 = this.view.k, k = Math.max(.1, Math.min(6, k0 * (e.deltaY < 0 ? 1.15 : 1 / 1.15)));
+        this.view.x = mx - (mx - this.view.x) * (k / k0); this.view.y = my - (my - this.view.y) * (k / k0); this.view.k = k; this.draw(); }, { passive: false });
+      new ResizeObserver(() => { this.resize(); this.draw(); }).observe(cv.parentElement);
+    }
+    resize() { const r = this.cv.parentElement.getBoundingClientRect(), d = window.devicePixelRatio || 1; this.w = r.width; this.h = r.height; this.cv.width = Math.max(1, r.width * d); this.cv.height = Math.max(1, r.height * d); this.d = d; }
+    world(e) { const r = this.cv.getBoundingClientRect(); return { x: (e.clientX - r.left - this.view.x) / this.view.k, y: (e.clientY - r.top - this.view.y) / this.view.k }; }
+    pick(p) { let best = null, bd = 1e9; for (const n of this.nodes || []) { const dx = n.x - p.x, dy = n.y - p.y, d = dx * dx + dy * dy, r = n.r + 3 / this.view.k; if (d < r * r && d < bd) { best = n; bd = d; } } return best; }
+    set(g, onOpen) {
+      if (this.data === g) { this.resize(); this.draw(); return; }
+      this.data = g; this.onOpen = onOpen; this.resize(); this.sel = null; this.hover = null;
+      const groups = [...new Set(g.nodes.map(n => n.group || ''))], gi = new Map(groups.map((x, i) => [x, i])), idx = new Map();
+      this.nodes = g.nodes.map((n, i) => { const a = (gi.get(n.group || '') / groups.length) * 6.283 + Math.random() * .6, rr = 60 + Math.random() * 140;
+        const o = { ...n, i, x: Math.cos(a) * rr, y: Math.sin(a) * rr, vx: 0, vy: 0, r: Math.min(15, 3 + Math.sqrt(n.deg || 0) * 1.7), col: `hsl(${(hash32(n.group || '') % 360)},68%,62%)`, adj: [] }; idx.set(n.id, o); return o; });
+      this.links = g.links.map(l => ({ a: idx.get(l.source), b: idx.get(l.target), rel: l.rel })).filter(l => l.a && l.b && l.a !== l.b);
+      this.links.forEach(l => { l.a.adj.push(l.b); l.b.adj.push(l.a); });
+      const cnt = {}; this.nodes.forEach(n => { cnt[n.group || '(none)'] = (cnt[n.group || '(none)'] || 0) + 1; });
+      $b('#bGleg').innerHTML = Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k, v]) => `<div><i style="background:hsl(${hash32(k === '(none)' ? '' : k) % 360},68%,62%)"></i>${E(k.slice(0, 34))} <small style="color:var(--dim)">${v}</small></div>`).join('');
+      $b('#bGstat').textContent = `${this.nodes.length} nodes · ${this.links.length} links · ${g.source === 'graphify' ? 'graphify' : 'wikilinks'}`;
+      $b('#bGinfo').textContent = 'Click a node. Double-click opens the note. Drag to pan, scroll to zoom.';
+      this.view = { x: this.w / 2, y: this.h / 2, k: Math.max(.35, Math.min(.9, .95 - this.nodes.length / 900)) }; this.alpha = 1; this.loop();
+    }
+    kick(a) { this.alpha = Math.max(this.alpha, a); this.loop(); }
+    loop() { if (this.raf) return; const step = () => { this.raf = 0; if (!this.nodes) return; if (this.alpha > .02) { this.tick(); this.alpha *= .992; } this.draw(); if (this.alpha > .02 && document.getElementById('bGraphWrap').classList.contains('on')) this.raf = requestAnimationFrame(step); }; this.raf = requestAnimationFrame(step); }
+    tick() {
+      const N = this.nodes, a = this.alpha, cell = 60, grid = new Map();
+      for (const n of N) { const k = Math.floor(n.x / cell) + ',' + Math.floor(n.y / cell); (grid.get(k) || grid.set(k, []).get(k)).push(n); }
+      for (const n of N) { const cx = Math.floor(n.x / cell), cy = Math.floor(n.y / cell);
+        for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) { const c = grid.get((cx + dx) + ',' + (cy + dy)); if (!c) continue;
+          for (const m of c) { if (m === n) continue; let rx = n.x - m.x, ry = n.y - m.y, d2 = rx * rx + ry * ry; if (d2 > cell * cell) continue; if (d2 < 1) { rx = Math.random() - .5; ry = Math.random() - .5; d2 = 1; } const f = 520 / (d2 + 40); n.vx += rx * f * a; n.vy += ry * f * a; } } }
+      for (const l of this.links) { const dx = l.b.x - l.a.x, dy = l.b.y - l.a.y, d = Math.sqrt(dx * dx + dy * dy) || 1, f = (d - 46) * .018 * a, fx = dx / d * f, fy = dy / d * f; l.a.vx += fx; l.a.vy += fy; l.b.vx -= fx; l.b.vy -= fy; }
+      for (const n of N) { if (n.fx) { n.vx = n.vy = 0; continue; } n.vx -= n.x * .004 * a; n.vy -= n.y * .004 * a; n.vx *= .82; n.vy *= .82; n.x += Math.max(-30, Math.min(30, n.vx)); n.y += Math.max(-30, Math.min(30, n.vy)); }
+    }
+    select(n) {
+      this.sel = n; this.draw(); const el = $b('#bGinfo');
+      if (!n) { el.textContent = 'Click a node. Double-click opens the note. Drag to pan, scroll to zoom.'; return; }
+      const nb = [...new Set(n.adj)].sort((x, y) => y.deg - x.deg).slice(0, 8);
+      el.innerHTML = `<h4>${E(n.label)}</h4><div style="color:var(--dim)">${E(n.group || '')}${n.kind ? ' · ' + E(n.kind) : ''} · ${n.deg} links</div>${n.note ? `<button data-open="${E(n.note)}">↗ open note</button>` : (n.file ? `<div style="color:var(--dim)">${E(n.file)}</div>` : '')}${nb.length ? '<div style="margin-top:4px;color:var(--dim)">connected to</div>' + nb.map(m => `<button data-n="${m.i}">${E(m.label.slice(0, 40))}</button>`).join('') : ''}`;
+    }
+    draw() {
+      if (!this.nodes) return; const c = this.ctx, v = this.view, d = this.d || 1; c.setTransform(d, 0, 0, d, 0, 0); c.clearRect(0, 0, this.w, this.h); c.translate(v.x, v.y); c.scale(v.k, v.k);
+      const focus = this.sel || this.hover, near = new Set(focus ? [focus, ...focus.adj] : []);
+      c.lineWidth = 1 / v.k; for (const l of this.links) { const hot = focus && (l.a === focus || l.b === focus); c.strokeStyle = hot ? 'rgba(255,215,122,.85)' : focus ? 'rgba(140,130,210,.07)' : 'rgba(140,130,210,.22)'; c.beginPath(); c.moveTo(l.a.x, l.a.y); c.lineTo(l.b.x, l.b.y); c.stroke(); }
+      for (const n of this.nodes) { c.globalAlpha = focus && !near.has(n) ? .25 : 1; c.fillStyle = n.col; c.beginPath(); c.arc(n.x, n.y, n.r, 0, 6.283); c.fill(); if (n === this.sel) { c.strokeStyle = '#fff'; c.lineWidth = 2 / v.k; c.stroke(); } }
+      c.globalAlpha = 1; c.font = `${11 / v.k}px ui-monospace, monospace`; c.textBaseline = 'middle';
+      let shown = 0; for (const n of this.nodes) { const show = near.has(n) && focus ? true : (v.k > 1.7 || n.deg >= 12) && shown < 80; if (!show) continue; shown++; const t = n.label.slice(0, 32); c.fillStyle = 'rgba(7,5,15,.75)'; const w = c.measureText(t).width; c.fillRect(n.x + n.r + 2 / v.k, n.y - 7 / v.k, w + 4 / v.k, 14 / v.k); c.fillStyle = '#efeaff'; c.fillText(t, n.x + n.r + 4 / v.k, n.y); }
+    }
+  }
+  $b('#bGinfo').addEventListener('click', e => { const o = e.target.closest('[data-open]'), n = e.target.closest('[data-n]'); if (o) openNote(o.dataset.open); if (n && gv) { const t = gv.nodes[+n.dataset.n]; gv.select(t); gv.view.x = gv.w / 2 - t.x * gv.view.k; gv.view.y = gv.h / 2 - t.y * gv.view.k; gv.draw(); } });
+
+  /* ---------- main tabs ---------- */
+  let brainInit = false;
+  $b('#mtabs').addEventListener('click', e => {
+    const b = e.target.closest('[data-mt]'); if (!b) return; const to = b.dataset.mt;
+    document.querySelectorAll('#mtabs .mtab').forEach(x => x.setAttribute('aria-selected', String(x === b)));
+    document.querySelector('.app').classList.toggle('on-brain', to === 'brain');
+    if (to === 'brain' && !brainInit) { brainInit = true; init(); } else if (to === 'brain' && gv && st.view !== 'note') setTimeout(() => { gv.resize(); gv.draw(); }, 0);
+    if (to === 'office' && typeof fitZoom === 'function') setTimeout(fitZoom, 0);
+  });
+})();
+</script>
+<script>
+'use strict';
+/* =====================================================================
+   AGENT CHAT — talk to an observed session from its modal.
+   Reading: the tail of the session's transcript (so you see everything, even what happened elsewhere).
+   Sending: the bridge continues that session with `claude -p --resume` on your subscription.
+   ===================================================================== */
+(() => {
+  const q = s => document.querySelector(s), E = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  let lastRunAt = 0, curId = null, sig = '', running = false, pendingAck = null, lastErr = '';
+  const note = (txt, cls) => { const n = q('#mChatNote'); n.className = 'chat-note' + (cls ? ' ' + cls : ''); n.innerHTML = txt; };
+  const eligible = () => typeof OBS !== 'undefined' && OBS && modalAgent && AG[modalAgent] && AG[modalAgent].kind === 'main';
+
+  function render(d) {
+    const a = AG[curId]; if (!a) return; const box = q('#mChat'), stick = box.scrollHeight - box.scrollTop - box.clientHeight < 50;
+    const key = d.messages.length + ':' + (d.messages.length ? d.messages[d.messages.length - 1].at + d.messages[d.messages.length - 1].t.length : '');
+    if (key !== sig) {
+      sig = key; box.style.setProperty('--c', DIVS[a.div].color);
+      box.innerHTML = d.messages.length ? d.messages.map(m => m.r === 'tool' ? `<div class="t">⚙ ${E(m.t)}</div>` : `<div class="${m.r === 'user' ? 'u' : 'a'}">${E(m.t)}</div>`).join('') : '<div class="e">No messages in this session yet.</div>';
+      if (stick) box.scrollTop = box.scrollHeight;
+    }
+    q('#mChatIn').placeholder = d.canChat === false ? 'Read-only: chat is available for Claude Code sessions' : 'Message this session… (Enter to send, Shift+Enter for a new line)';
+    if (d.canChat === false) { q('#mChatIn').disabled = true; q('#mChatSend').disabled = true; q('#mChatHint').textContent = '· ' + d.provider + ' · read-only'; note(d.provider === 'grokbot' ? 'The Grok Bot app keeps no readable conversation here. Only its status is shown.' : 'Conversation shown read-only. Messaging is implemented for Claude Code sessions only.'); if (d.provider === 'grokbot' && !d.messages.length) q('#mChat').innerHTML = '<div class="e">No conversation data (status only).</div>'; return; }
+    running = d.running; if (running) lastRunAt = Date.now(); const busy = d.live && d.status !== 'idle' && !running && Date.now() - lastRunAt > 20000;
+    q('#mChatIn').disabled = running || busy; q('#mChatSend').disabled = running || busy;
+    q('#mChatHint').textContent = d.live ? '· open in Claude' : '· not running (will be resumed)';
+    if (running) note('● Claude is replying… <button class="ctl" id="mChatStop">STOP</button>', 'run');
+    else if (busy) note(`This session is ${d.status} in Claude. You can send when it is idle.`);
+    else if (lastErr) note(E(lastErr), 'err');
+    else if (!pendingAck) note('');
+  }
+
+  async function poll() {
+    if (!eligible()) { curId = null; return; }
+    if (modalAgent !== curId) { curId = modalAgent; sig = ''; lastErr = ''; pendingAck = null; q('#mChat').innerHTML = '<div class="e">Loading…</div>'; q('#mChatIn').value = ''; }
+    q('#mChatSec').hidden = false;
+    try { const r = await fetch('/api/chat/messages?id=' + encodeURIComponent(curId)); const d = await r.json(); if (!r.ok) throw new Error(d.error || 'unavailable'); render(d); }
+    catch (e) { q('#mChat').innerHTML = `<div class="e">${E(e.message)}</div>`; q('#mChatIn').disabled = true; q('#mChatSend').disabled = true; }
+  }
+  setInterval(() => { if (typeof modalAgent !== 'undefined' && modalAgent && typeof OBS !== 'undefined' && OBS) poll(); else q('#mChatSec').hidden = true; }, 1500);
+  document.addEventListener('click', e => { if (e.target.closest('.a-open, #cv')) setTimeout(poll, 150); });
+  const origOpen = window.openModal; if (typeof origOpen === 'function') window.openModal = function (id) { origOpen(id); setTimeout(poll, 50); };
+
+  async function send(ack) {
+    const text = (pendingAck && ack ? pendingAck : q('#mChatIn').value).trim(); if (!text || !curId) return;
+    lastErr = '';
+    try {
+      const r = await fetch('/api/chat/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: curId, text, ack: !!ack }) }); const d = await r.json();
+      if (r.status === 409 && d.needsAck) { pendingAck = text; note(`${E(d.error)} <button class="ctl" id="mChatOk">SEND ANYWAY</button><button class="ctl" id="mChatNo">CANCEL</button>`); return; }
+      if (!r.ok) throw new Error(d.error || 'failed');
+      pendingAck = null; q('#mChatIn').value = ''; running = true; note('● Claude is replying…', 'run'); q('#mChatIn').disabled = true; q('#mChatSend').disabled = true; setTimeout(poll, 400);
+      logLine('AUDIT', 'operator', `message to ${AG[curId].title || AG[curId].name}: ${text.slice(0, 80)}`, AG[curId].div);
+    } catch (e) { lastErr = e.message; note(E(e.message), 'err'); }
+  }
+  q('#mChatSend').addEventListener('click', () => send(false));
+  q('#mChatIn').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(false); } e.stopPropagation(); });
+  q('#mChatNote').addEventListener('click', e => {
+    if (e.target.id === 'mChatOk') send(true);
+    else if (e.target.id === 'mChatNo') { pendingAck = null; note(''); }
+    else if (e.target.id === 'mChatStop') fetch('/api/chat/cancel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: curId }) });
+  });
+  window.__chatEvent = ev => {
+    if (ev.id !== curId) return; lastRunAt = Date.now();
+    if (ev.error) { lastErr = ev.error; note(E(ev.error), 'err'); } else if (ev.waiting) note('Needs your permission — see the Decision Console.', 'run');
+    poll();
+  };
+})();
+</script>
+</body>
+</html>

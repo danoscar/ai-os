@@ -1,0 +1,11 @@
+node_modules/
+workspace/
+.DS_Store
+*.bak
+*.bak-*
+*.log
+.env
+.env.*
+.claude/
+.pixel-office/
+*.tmp

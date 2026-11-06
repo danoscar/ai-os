@@ -1,0 +1,34 @@
+{
+  "name": "pixel-office",
+  "version": "0.1.0",
+  "description": "A pixel-art isometric office that shows your real Claude Code sessions, lets you answer their permission prompts, chat with them, and browse your notes (Obsidian / graphify).",
+  "private": true,
+  "type": "commonjs",
+  "bin": {
+    "pixel-office": "server.js"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node dev/test-providers.js",
+    "install-hook": "node install-hook.js",
+    "uninstall-hook": "node install-hook.js --uninstall"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "index.html",
+    "server.js",
+    "observer.js",
+    "util.js",
+    "providers/",
+    "brain.js",
+    "rpg.js",
+    "repos.js",
+    "ui/",
+    "docs/",
+    "hook/",
+    "install-hook.js",
+    "README.md"
+  ]
+}
