@@ -271,7 +271,7 @@ button{font:inherit;color:inherit}
 .mode{font-size:9px;letter-spacing:.1em;padding:1px 6px;border:1px solid;font-weight:700}
 .mode.demo{color:var(--amber);border-color:#7a5d12;background:#2a2008}
 .mode.live{color:#7be0a0;border-color:#2c6b49;background:#10261d;cursor:pointer}
-.psel{background:#2a2358;color:var(--ink);border:0;padding:3px 6px;font:inherit;font-size:11px;font-weight:700;box-shadow:inset -2px -2px 0 #120e2b,inset 2px 2px 0 #4a3f93;max-width:230px;cursor:pointer}
+.psel{background:#2a2358;color:var(--ink);border:0;padding:2px 4px;font:inherit;font-size:10.5px;font-weight:700;box-shadow:inset -2px -2px 0 #120e2b,inset 2px 2px 0 #4a3f93;max-width:230px;cursor:pointer}
 .psel:focus-visible{outline:2px solid #fff}
 .pager{display:inline-flex;gap:3px;margin-left:8px}.pager .ctl.on{background:#5b4fc4;color:#fff}
 .mode.warn{color:#ff8a95;border-color:#7a2a35;background:#2a0d14}
@@ -928,14 +928,20 @@ const GL = {};
     '-': '00000/00000/00000/11111/00000/00000/00000', '#': '01010/01010/11111/01010/11111/01010/01010', '.': '00000/00000/00000/00000/00000/01100/01100',
     ':': '00000/01100/01100/00000/01100/01100/00000', '!': '00100/00100/00100/00100/00100/00000/00100', '?': '01110/10001/00001/00010/00100/00000/00100',
     '/': '00001/00001/00010/00100/01000/10000/10000', '+': '00000/00100/00100/11111/00100/00100/00000', ' ': '00000/00000/00000/00000/00000/00000/00000',
-    '✔': '00001/00010/00010/10100/10100/01000/01000'
+    '✔': '00001/00010/00010/10100/10100/01000/01000',
+    '(': '00010/00100/01000/01000/01000/00100/00010', ')': '01000/00100/00010/00010/00010/00100/01000', '_': '00000/00000/00000/00000/00000/00000/11111',
+    ',': '00000/00000/00000/00000/01100/00100/01000', "'": '00100/00100/01000/00000/00000/00000/00000', '&': '01100/10010/10100/01000/10101/10010/01101',
+    '…': '00000/00000/00000/00000/00000/00000/10101', '·': '00000/00000/00000/01100/01100/00000/00000', '=': '00000/00000/11111/00000/11111/00000/00000',
+    '*': '00000/10101/01110/11111/01110/10101/00000', '@': '01110/10001/10111/10101/10111/10000/01110', '%': '11001/11010/00010/00100/01000/01011/10011',
+    '[': '01110/01000/01000/01000/01000/01000/01110', ']': '01110/00010/00010/00010/00010/00010/01110', '|': '00100/00100/00100/00100/00100/00100/00100',
+    ';': '00000/01100/01100/00000/01100/00100/01000', '"': '01010/01010/00000/00000/00000/00000/00000', '<': '00010/00100/01000/10000/01000/00100/00010', '>': '01000/00100/00010/00001/00010/00100/01000'
   };
   for (const k in G) GL[k] = G[k].split('/');
 })();
 const tcache = new Map();
 function textSprite(str, color, outline) {
   const key = str + '|' + color + '|' + (outline || ''); let e = tcache.get(key); if (e) return e;
-  str = str.toUpperCase(); const n = str.length, o = outline ? 1 : 0;
+  str = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase(); const n = str.length, o = outline ? 1 : 0;
   const cv = document.createElement('canvas'); cv.width = n * 6 - 1 + o * 2; cv.height = 7 + o * 2; const c = cv.getContext('2d');
   const draw = (dx, dy, col) => {
     c.fillStyle = col;
@@ -1647,7 +1653,7 @@ function applyOffice(o) {
       if (!first && !obsKnown.has(it.id)) logLine('INFO', it.name, `entered the office (${it.project})`, key);
     }
     obsKnown.add(it.id); const moved = a.div !== key || a.slot !== slot;
-    a.sid = it.sessionId; Object.assign(a, { sleeping: !!it.sleeping, done: !!it.done, div: key, slot, head, look: lookFor(it.sessionId || it.id, D.color), provider: it.provider || 'claude', name: clip(({ codex: 'CX · ', gemini: 'GM · ', grok: 'GK · ' }[it.provider] || '') + it.name, 18), title: it.name, root: it.root, kind: it.kind,
+    a.sid = it.sessionId; Object.assign(a, { sleeping: !!it.sleeping, done: !!it.done, div: key, slot, head, look: lookFor(it.sessionId || it.id, D.color), provider: it.provider || 'claude', name: clip(({ codex: 'CX · ', gemini: 'GM · ', grok: 'GK · ' }[it.provider] || '') + String(it.name).replace(/\s+/g, ' ').trim(), 18), title: it.name, root: it.root, kind: it.kind,
       role: it.kind === 'sub' ? 'Subagent · ' + it.role : ({ codex: 'Codex', gemini: 'Gemini CLI', grok: 'Grok Build', grokbot: 'Grok Bot app' }[it.provider] || 'Claude Code') + (it.sleeping ? ' · sleeping session' : it.entrypoint && it.provider === 'claude' ? ' · ' + it.entrypoint : ''), model: it.model });
     if (moved) { a.desk = [D.ox + rel[0], D.oy + rel[1]]; const [x, y] = iso(a.desk[0] + 1.5, a.desk[1] + 1.5, 0); a.ax = Math.round(x); a.ay = Math.round(y); }
     const m = obsMem[it.id], act = it.activity;

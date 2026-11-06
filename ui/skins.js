@@ -18,10 +18,16 @@
     state: null, listeners: [],
     set(s) { this.state = s; this.skew = Date.now() - (s.now || Date.now()); this.listeners.forEach(f => f(s)); },
     now() { return Date.now() - (this.skew || 0); },
-    level() { return this.state ? this.state.company.level : 1; },
+    preview: null,                             // {level}: look at the world as it would be at that level (client-only, saved progress is untouched)
+    level() { return this.preview ? this.preview.level : this.state ? this.state.company.level : 1; },
     company() { return this.state && this.state.company; },
-    land(root) { return (this.state && this.state.lands[root]) || null; },
-    char(sid) { return (this.state && this.state.chars[sid]) || null; },
+    land(root) { if (this.preview) return this.fakeLand(root); return (this.state && this.state.lands[root]) || null; },
+    char(sid) { if (this.preview) return { level: this.preview.level, title: RC.titleFor(this.preview.level), xp: 0, hi: 0 }; return (this.state && this.state.chars[sid]) || null; },
+    fakeLand(root) {                           // a full, varied field for the preview
+      const L = this.preview.level, kinds = RC.unlockedKinds(L), n = RC.maxPlots(Math.min(10, L)), now = Date.now(), plots = [];
+      for (let i = 0; i < n; i++) plots.push({ c: i, k: kinds[(i + RC.hash(root)) % kinds.length], at: now - [0.05, 0.4, 0.7, 1.2][(i * 7 + RC.hash(root)) % 4] * RC.GROW_MS });
+      return { name: 'preview', ...RC.progress(40 * 9, 'land'), plots, coins: 0, harvested: 0 };
+    },
     demo() {                                   // pre-grown sample world for the file:// demo and for first-time users without a bridge
       const now = Date.now(), lands = {}; let n = 0;
       for (const k of DKEYS) { const plots = []; const used = new Set(); for (let i = 0; i < 14; i++) { let c; do c = Math.floor(rnd(i + n * 7, 3) * RC.CELLS.length); while (used.has(c)); used.add(c); plots.push({ c, k: Math.floor(rnd(i, n + 9) * 5), at: now - rnd(i, n + 2) * RC.GROW_MS * 1.5 }); } lands['demo:' + k] = { name: DIVS[k].label, ...RC.progress(400 + n * 220, 'land'), plots, coins: 40, harvested: 6 }; n++; }
@@ -54,8 +60,8 @@
     if (n > 0) { c.globalCompositeOperation = 'source-atop'; c.fillStyle = kind === 'space' ? `rgba(20,10,60,${.5 * n})` : `rgba(10,18,70,${.52 * n})`; c.fillRect(0, 0, W0, H0); c.globalCompositeOperation = 'source-over'; }
     if (n < .6 && w !== 'rain') { c.globalCompositeOperation = 'source-atop'; const g = c.createRadialGradient(W0 * .86, -20, 10, W0 * .86, -20, 640); g.addColorStop(0, `rgba(255,236,170,${.3 * (1 - n)})`); g.addColorStop(1, 'rgba(255,236,170,0)'); c.fillStyle = g; c.fillRect(0, 0, W0, H0); c.globalCompositeOperation = 'source-over'; }
     if (w === 'rain' && kind !== 'space') {
-      c.strokeStyle = 'rgba(190,215,255,.55)'; c.lineWidth = 1; c.beginPath();
-      for (let i = 0; i < 170; i++) { const sp = 160 + rnd(i, 1) * 120, x = (rnd(i, 2) * (W0 + 200) + t * 40) % (W0 + 200) - 100, y = (rnd(i, 3) * H0 + t * sp) % H0; c.moveTo(x, y); c.lineTo(x - 3, y + 9); }
+      c.strokeStyle = 'rgba(205,228,255,.8)'; c.lineWidth = 1.4; c.beginPath();
+      for (let i = 0; i < 260; i++) { const sp = 200 + rnd(i, 1) * 140, x = (rnd(i, 2) * (W0 + 200) + t * 50) % (W0 + 200) - 100, y = (rnd(i, 3) * H0 + t * sp) % H0; c.moveTo(x, y); c.lineTo(x - 4, y + 13); }
       c.stroke();
       for (let i = 0; i < 18; i++) { const ph = (t * .9 + rnd(i, 4)) % 1, [x, y] = iso(1 + rnd(i, 5) * 14, 1 + rnd(i, 6) * 14, 0); c.strokeStyle = `rgba(210,230,255,${.55 * (1 - ph)})`; c.beginPath(); c.ellipse(x, y, 2 + ph * 7, 1 + ph * 3, 0, 0, PI2); c.stroke(); }
       c.globalCompositeOperation = 'source-atop'; c.fillStyle = 'rgba(40,60,100,.2)'; c.fillRect(0, 0, W0, H0); c.globalCompositeOperation = 'source-over';
@@ -112,6 +118,15 @@
     if (lvl >= 6 && work) { c.strokeStyle = `rgba(255,220,100,${.35 + .25 * sin(t * 4)})`; c.lineWidth = 2; c.beginPath(); c.ellipse(ax, ay + 1, 15, 6, 0, 0, PI2); c.stroke(); }
   }
 
+  /* project banner on a pole at the back corner of every room (so you can tell the fields / sectors apart) */
+  function banner(c, k, t, style, ox = .15, oy = .15) {
+    const D = DIVS[k], [bx, by] = iso(D.ox + ox, D.oy + oy, 0), px = Math.round(bx), py = Math.round(by), s = textSprite(String(D.label), '#ffffff', shade(D.color, -.75)), w = s.w + 10, topY = py - 56, fl = Math.round(sin(t * 2 + D.ox) * 1);
+    R(c, px - 1, topY - 2, 3, 58, style === 'space' ? '#b9c0dc' : '#7a5230'); R(c, px - 2, topY - 4, 5, 3, style === 'space' ? '#5ff0ff' : '#c99a62');
+    if (style === 'space') { c.globalAlpha = .88; R(c, px + 3, topY, w, 15, shade(D.color, -.55)); c.globalAlpha = 1; c.strokeStyle = D.color; c.lineWidth = 1; c.strokeRect(px + 3.5, topY + .5, w - 1, 14); R(c, px + 3, topY + 14, w, 1, `rgba(95,240,255,${.5 + .3 * sin(t * 5)})`); }
+    else { R(c, px + 3, topY, w, 15, D.color); R(c, px + 3, topY, w, 1, shade(D.color, .35)); R(c, px + 3, topY + 14 + fl, w, 1, shade(D.color, -.35)); poly(c, [[px + 3, topY + 15], [px + 3 + w, topY + 15], [px + 3 + w - 4, topY + 18 + fl], [px + 3 + w - 8, topY + 15]], shade(D.color, -.2)); }
+    c.drawImage(s.cv, px + 8, topY + 4);
+  }
+
   /* ======================================================================
      OFFICE: the default look + a few perks that unlock with the company level
      ====================================================================== */
@@ -134,8 +149,20 @@
     },
     post(c, t) {
       const L = RPGV.level();
-      if (L >= 5) { const [x, y] = iso(8, 0.2, 52); const on = .75 + .25 * sin(t * 3); c.save(); c.shadowColor = '#ff4fa3'; c.shadowBlur = 12; drawText(c, 'PIXEL OFFICE', x - 36, y - 8, `rgba(255,120,190,${on})`, 1, '#4a0f2e'); c.restore(); }
-      if (L >= 10) { for (const [a, b] of [[[7.2, 0.3], [7.2, 7]], [[8.8, 0.3], [8.8, 7]], [[0.3, 7.5], [7, 7.5]], [[9, 7.5], [15.7, 7.5]]]) { const A = iso(a[0], a[1], 40), B = iso(b[0], b[1], 40); for (let i = 0; i <= 12; i++) { const f = i / 12, x = A[0] + (B[0] - A[0]) * f, y = A[1] + (B[1] - A[1]) * f + sin(f * Math.PI) * 9; c.fillStyle = ['#ff5d6c', '#ffc83d', '#5be37d', '#5cc8ff', '#b57bff'][i % 5]; c.globalAlpha = .55 + .45 * sin(t * 3 + i); c.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3); c.globalAlpha = 1; } } }
+      if (L >= 5) {                                                   // neon sign hanging over the north hallway
+        const [bx, by] = iso(8, 3.2, 78), x = Math.round(bx), y = Math.round(by), on = .78 + .22 * sin(t * 3);
+        line(c, [x - 36, y - 11], [x - 36, y - 30], '#3a2f5a', 1); line(c, [x + 36, y - 11], [x + 36, y - 30], '#3a2f5a', 1);
+        R(c, x - 47, y - 12, 94, 24, '#1a0a1d'); c.strokeStyle = `rgba(255,120,190,${on})`; c.lineWidth = 2; c.strokeRect(x - 46, y - 11, 92, 22);
+        c.save(); c.shadowColor = '#ff4fa3'; c.shadowBlur = 12; drawText(c, 'PIXEL OFFICE', x - 36, y - 4, `rgba(255,150,205,${on})`, 1, '#4a0f2e'); c.restore();
+      }
+      if (L >= 10) {                                                  // party lights strung over the hallways
+        for (const [a, b] of [[[7.1, 0.4], [7.1, 7]], [[8.9, 0.4], [8.9, 7]], [[0.4, 7.1], [7, 7.1]], [[9, 7.1], [15.6, 7.1]], [[0.4, 8.9], [7, 8.9]], [[9, 8.9], [15.6, 8.9]]]) {
+          const A = iso(a[0], a[1], 44), B = iso(b[0], b[1], 44); c.strokeStyle = 'rgba(30,24,50,.7)'; c.lineWidth = 1; c.beginPath();
+          for (let i = 0; i <= 16; i++) { const f = i / 16, x = A[0] + (B[0] - A[0]) * f, y = A[1] + (B[1] - A[1]) * f + sin(f * Math.PI) * 10; i ? c.lineTo(x, y) : c.moveTo(x, y); } c.stroke();
+          for (let i = 1; i < 16; i += 1) { const f = i / 16, x = A[0] + (B[0] - A[0]) * f, y = A[1] + (B[1] - A[1]) * f + sin(f * Math.PI) * 10, col = ['#ff5d6c', '#ffc83d', '#5be37d', '#5cc8ff', '#b57bff'][i % 5], on = Math.sin(t * 3 + i) > -.3;
+            c.fillStyle = on ? col : '#3a3358'; c.fillRect(Math.round(x) - 2, Math.round(y), 4, 4); if (on) { c.globalAlpha = .25; c.fillRect(Math.round(x) - 4, Math.round(y) - 2, 8, 8); c.globalAlpha = 1; } }
+        }
+      }
     }
   };
 
@@ -212,11 +239,19 @@
     if (isNight(t)) { ell(c, sx, sy - 24, 3, 3, '#ffd77a'); }
   }
 
+  function flowers(c, k, t) {                      // a few wildflowers on the grass so a brand-new farm is not bare
+    const D = DIVS[k], cells = new Set(RC.CELLS.map(([a, b]) => a + ',' + b));
+    for (let i = 0; i < 9; i++) { const rx = 2 + Math.floor(rnd(i, 90 + D.ox) * 5), ry = 1 + Math.floor(rnd(i, 91 + D.oy) * 5); if (cells.has(rx + ',' + ry) || (rx === 2 || rx === 5) && (ry === 1 || ry === 4)) continue;
+      const [bx, by] = iso(D.ox + rx + .2 + rnd(i, 92) * .6, D.oy + ry + .2 + rnd(i, 93) * .6, 0), px = Math.round(bx), py = Math.round(by), col = ['#ff6fa5', '#ffd23f', '#ffffff', '#b57bff'][i % 4], sw = Math.round(sin(t * 2 + i));
+      R(c, px, py - 5, 1, 5, '#3f8a31'); R(c, px - 1 + sw, py - 7, 3, 3, col); R(c, px + sw, py - 6, 1, 1, '#ffd23f'); }
+  }
   function farmItems(c, t, items, solo) {
     const L = RPGV.level(), n = nightFactor(t);
+    for (const k of rooms()) items.push({ d: DIVS[k].ox + DIVS[k].oy + 3, f: () => flowers(c, k, t) });
     for (const k of rooms()) { const land = landFor(k); if (!land) continue; const now = RPGV.now();
       land.plots.forEach(p => { const [x, y] = cellXY(k, p.c); items.push({ d: x + y + .6, f: () => cropSprite(c, x, y, p.k, RC.stageOf(p, now), t, p.c) }); }); }
     const addAt = (d, f) => items.push({ d, f });
+    for (const k of rooms()) addAt(DIVS[k].ox + DIVS[k].oy - .5, () => banner(c, k, t, 'farm'));
     if (!solo) {
       [[7.3, .3], [8.7, .3], [.4, 7.3], [.4, 8.8], [15.4, 7.3], [15.4, 8.8], [7.3, 15.4], [8.7, 15.4], [6.6, 6.7], [9.4, 9.3]].forEach(([x, y], i) => addAt(x + y + .5, () => tree(c, x, y, t, .9 + rnd(i, 2) * .3)));
       if (L >= 3) { addAt(8 + 8 + .5, () => well(c, 8, 8)); addAt(11, () => scarecrow(c, 5.4, 7.6, t)); }
@@ -311,6 +346,7 @@
   function spaceItems(c, t, items, solo) {
     const L = RPGV.level(), n = nightFactor(t), now = RPGV.now();
     for (const k of rooms()) { const land = landFor(k); if (!land) continue; land.plots.forEach(p => { const [x, y] = cellXY(k, p.c); items.push({ d: x + y + .6, f: () => module(c, x, y, p.k, RC.stageOf(p, now), t, p.c) }); }); }
+    for (const k of rooms()) items.push({ d: DIVS[k].ox + DIVS[k].oy + 6.3, f: () => banner(c, k, t, 'space', .9, 6.1) });
     if (solo) return;
     if (L >= 3) { rover.x += rover.dir * .012; if (rover.x > 12.4 || rover.x < 3.5) rover.dir *= -1; items.push({ d: rover.x + rover.y + .5, f: () => { const [bx, by] = iso(rover.x, rover.y, 0), px = Math.round(bx), py = Math.round(by); shadow(c, px, py + 1, 9, 4, .25); R(c, px - 7, py - 6, 14, 4, '#e8edfb'); R(c, px - 4, py - 10, 8, 4, '#aab1d1'); R(c, px - 3, py - 9, 6, 2, '#5ff0ff'); for (const dx of [-6, 0, 5]) { R(c, px + dx, py - 3, 3, 3, '#23273f'); } line(c, [px + 4, py - 10], [px + 8, py - 16 + Math.round(sin(t * 3) * 2)], '#c9cfe6', 1); } }); }
     if (L >= 4) drones.forEach(d => { d.a += .012; items.push({ d: 16 + 2, f: () => { const [bx, by] = iso(8 + cos(d.a) * d.r, 8 + sin(d.a) * d.r, 0), px = Math.round(bx), py = Math.round(by) - 34 - Math.round(sin(t * 3 + d.a) * 3); ell(c, px, py + 36, 6, 2, 'rgba(0,0,0,.2)'); R(c, px - 4, py, 8, 3, '#e8edfb'); R(c, px - 7, py - 2, 4, 1, '#98a0c8'); R(c, px + 3, py - 2, 4, 1, '#98a0c8'); R(c, px - 1, py + 3, 2, 1, Math.floor(t * 6 + d.a) % 2 ? '#5ff0ff' : '#1d5a66'); } }); });
@@ -336,9 +372,10 @@
     const sel = document.getElementById('skinSel'); if (sel) sel.value = name;
     if (typeof buildStatic === 'function') buildStatic();
   };
-  window.setWorld = (kind, v) => { WX[kind] = v; try { localStorage.setItem('po.' + kind, v); } catch { /* ignore */ } lastSky = ''; if (kind === 'weather') WX.until = 0; };
+  window.setWorld = (kind, v) => { WX[kind] = v; const sel = document.getElementById(kind === 'weather' ? 'wxSel' : 'tmSel'); if (sel) sel.value = v; try { localStorage.setItem('po.' + kind, v); } catch { /* ignore */ } lastSky = ''; if (kind === 'weather') WX.until = 0; };
   window.WORLD = WX;
   const saved = (() => { try { return localStorage.getItem('po.skin'); } catch { return null; } })();
   if (!location.protocol.startsWith('http')) RPGV.demo();
+  { const pv = Number(new URLSearchParams(location.search).get('preview')); if (pv >= 1 && pv <= 30) RPGV.preview = { level: pv }; }
   window.setSkin(window.SKINS[saved] ? saved : 'office');
 })();

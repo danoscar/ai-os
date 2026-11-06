@@ -35,6 +35,10 @@ Levels follow `xp = scale × (level − 1)²` (company 60, land 40, character 40
 
 **Characters**: L2 name badge · L4 hat band / gold trim · L6 glow ring while working · L8 golden nameplate · L10 legend aura. Titles: Intern, Junior, Associate, Mid-level, Senior, Staff, Lead, Principal, Director, Legend (one per two levels).
 
+## Preview any level
+
+Click `★ LV`, then use **Preview the world at another level**: the current skin shows every perk and a full, varied field as it would look at that level (1-12). Only your view changes; saved progress is untouched. You can also open `http://localhost:8787/?preview=10`.
+
 ## The world
 
 Farm and Space share a day/night cycle (your real clock, or pick Day / Night / a fast cycle) and weather (auto, sunny, cloudy, rain). Rain and meteor showers become more likely when many agents are working at once. These are cosmetic: nothing is lost at night or in a storm.

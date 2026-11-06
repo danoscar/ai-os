@@ -10,13 +10,13 @@
   RPGV.plotPos = (root, i) => { const key = (typeof OBS !== 'undefined' && OBS) ? obsRoom[root] : String(root).replace('demo:', ''); if (!key || !DIVS[key]) return null; const [rx, ry] = RC.CELLS[i], D = DIVS[key]; return iso(D.ox + rx + .5, D.oy + ry + .5, 0); };
 
   /* ---------- level button ---------- */
-  function renderBtn() {
+  function renderBtn(skipPanel) {
     const c = RPGV.company(); if (!c) return;
-    q('#lvNum').textContent = '★ LV ' + c.level; q('#lvFill').style.width = Math.round(c.pct * 100) + '%'; q('#lvXp').textContent = `${num(c.xp)} XP`;
+    q('#lvNum').textContent = RPGV.preview ? '👁 PREVIEW LV ' + RPGV.preview.level : '★ LV ' + c.level; q('#lvFill').style.width = Math.round(c.pct * 100) + '%'; q('#lvXp').textContent = `${num(c.xp)} XP`;
     q('#lvBtn').title = `Level ${c.level} · ${num(c.hi - c.xp)} XP to level ${c.level + 1} — click for perks and how to level up`;
-    if (q('#progModal').classList.contains('on')) renderPanel();
+    if (skipPanel !== true && q('#progModal').classList.contains('on')) renderPanel();
   }
-  RPGV.listeners.push(renderBtn);
+  RPGV.listeners.push(s => renderBtn());
 
   /* ---------- toast ---------- */
   let tt = 0;
@@ -38,7 +38,7 @@
   /* ---------- progress panel ---------- */
   function renderPanel() {
     const st = RPGV.state; if (!st) { q('#pgBody').innerHTML = '<div class="wide" style="color:var(--dim)">No progress yet. Start the bridge (<code>node server.js</code>) and do some work.</div>'; return; }
-    const c = st.company, skin = window.SKINID, perks = RC.perksFor(skin, c.level), next = perks.find(p => !p.unlocked);
+    const c = st.company, skin = window.SKINID, shownLvl = RPGV.preview ? RPGV.preview.level : c.level, perks = RC.perksFor(skin, shownLvl), next = perks.find(p => !p.unlocked);
     const lands = Object.entries(st.lands).sort((a, b) => b[1].xp - a[1].xp).slice(0, 8), chars = Object.values(st.chars).sort((a, b) => b.xp - a.xp).slice(0, 6);
     q('#pgSub').textContent = `${skin === 'office' ? 'Office' : skin === 'farm' ? 'Farm' : 'Space station'} skin · progress is saved on this computer only`;
     q('#pgBody').innerHTML = `
@@ -50,13 +50,17 @@
       <div><h4>Lands (projects)</h4><ul class="pg-list">${lands.length ? lands.map(([, l]) => `<li><b>L${l.level}</b><span>${E(l.name)} · ${l.plots.length} growing · ${l.harvested} done</span></li>`).join('') : '<li class="lock"><span>none yet</span></li>'}</ul></div>
       <div><h4>Characters</h4><ul class="pg-list">${chars.length ? chars.map(x => `<li><b>L${x.level}</b><span>${E(x.title)} · ${E(String(x.name).slice(0, 34))}</span></li>`).join('') : '<li class="lock"><span>none yet</span></li>'}</ul>
         <p style="color:var(--dim);font-size:11px">Character perks: ${RC.CHAR_PERKS.map(([l, n]) => `L${l} ${E(n)}`).join(' · ')}</p></div>
+      <div class="wide"><h4>Preview the world at another level</h4><div style="display:flex;gap:10px;align-items:center"><input type="range" id="pvRange" min="1" max="12" value="${RPGV.preview ? RPGV.preview.level : c.level}" style="flex:1"><b id="pvLbl" style="min-width:90px">${RPGV.preview ? 'Level ' + RPGV.preview.level : 'off (real)'}</b><button class="ctl" id="pvOff">OFF</button></div><p style="color:var(--dim);font-size:11px;margin:4px 0 0">Shows every perk and a full field at that level in the current skin. Only your view changes; saved progress is untouched.</p></div>
       <div class="wide" style="text-align:right">${location.protocol.startsWith('http') ? '<button class="pg-reset" id="pgReset">RESET PROGRESS…</button>' : ''}</div>`;
   }
   function open() { q('#progModal').classList.add('on'); q('#progModal').setAttribute('aria-hidden', 'false'); renderPanel(); }
   function close() { q('#progModal').classList.remove('on'); q('#progModal').setAttribute('aria-hidden', 'true'); }
   q('#lvBtn').addEventListener('click', open); q('#pgClose').addEventListener('click', close);
   q('#progModal').addEventListener('mousedown', e => { if (e.target === q('#progModal')) close(); });
+  q('#pgBody').addEventListener('input', e => { if (e.target.id !== 'pvRange') return; RPGV.preview = { level: +e.target.value }; q('#pvLbl').textContent = 'Level ' + e.target.value; renderBtn(true); });
+  q('#pgBody').addEventListener('change', e => { if (e.target.id === 'pvRange') renderPanel(); });
   q('#pgBody').addEventListener('click', async e => {
+    if (e.target.id === 'pvOff') { RPGV.preview = null; renderBtn(); renderPanel(); return; }
     if (e.target.id !== 'pgReset') return;
     if (!confirm('Reset ALL progress (levels, plots, streak)? This cannot be undone.')) return;
     await fetch('/api/rpg/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirm: true }) }); close();
