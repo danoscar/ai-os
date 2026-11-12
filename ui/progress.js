@@ -7,7 +7,7 @@
   const E = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const num = n => Math.round(n).toLocaleString('en-US');
 
-  RPGV.plotPos = (root, i) => { const key = (typeof OBS !== 'undefined' && OBS) ? obsRoom[root] : String(root).replace('demo:', ''); if (!key || !DIVS[key]) return null; const [rx, ry] = RC.CELLS[i], D = DIVS[key]; return iso(D.ox + rx + .5, D.oy + ry + .5, 0); };
+  RPGV.plotPos = (root, i) => { const key = (typeof OBS !== 'undefined' && OBS) ? obsRoom[root] : String(root).replace('demo:', ''); if (!key || !DIVS[key]) return null; if (window.SKINID === 'office') return RPGV.officeSpot(key, RPGV.land(root), i); const [rx, ry] = RC.CELLS[i], D = DIVS[key]; return iso(D.ox + rx + .5, D.oy + ry + .5, 0); };
 
   /* ---------- level button ---------- */
   function renderBtn(skipPanel) {
@@ -30,8 +30,8 @@
       toast(`LEVEL UP!  ${who} → Lv ${ev.level}${ev.title ? ' · ' + ev.title : ''}`, ev.scope === 'company' ? '#ffc83d' : '#5be37d');
       logLine('OK', 'RPG', `level up: ${who} reached Lv ${ev.level}${ev.title ? ' (' + ev.title + ')' : ''}`);
       if (ev.scope === 'company') { const sk = window.SKINID, pk = RC.perksFor(sk, ev.level).find(p => p.lvl === ev.level); if (pk) logLine('OK', 'RPG', `new perk unlocked: ${pk.name}`); }
-    } else if (ev.kind === 'plant') { const a = where(ev.root, ev.cell); if (a && window.SKINID !== 'office') burst(a, window.SKINID === 'space' ? 'BUILD' : 'PLANT', '#7bd05a', ['#7bd05a', '#c6f08a', '#8a5a2e']); }
-    else if (ev.kind === 'harvest') { const a = where(ev.root, ev.cell); if (a) burst(a, '+' + ev.coins + 'c', '#ffd23f', ['#ffd23f', '#fff3a0', '#ff8a2a']); logLine('INFO', 'RPG', `${window.SKINID === 'space' ? 'shipped' : 'harvested'} ${(window.SKINID === 'space' ? RC.MODULES : RC.CROPS)[ev.k]} on ${ev.name}: +${ev.coins} coins`); }
+    } else if (ev.kind === 'plant') { const a = where(ev.root, ev.cell); if (a) window.SKINID === 'office' ? burst(a, 'DELIVERY', '#e0b070', ['#e0b070', '#f6e7c4', '#a06f3a']) : burst(a, window.SKINID === 'space' ? 'BUILD' : 'PLANT', '#7bd05a', ['#7bd05a', '#c6f08a', '#8a5a2e']); }
+    else if (ev.kind === 'harvest') { const a = where(ev.root, ev.cell); if (a) burst(a, '+' + ev.coins + 'c', '#ffd23f', ['#ffd23f', '#fff3a0', '#ff8a2a']); logLine('INFO', 'RPG', `${window.SKINID === 'space' ? 'shipped' : window.SKINID === 'farm' ? 'harvested' : 'finished'} ${RC.kindNames(window.SKINID)[ev.k]} on ${ev.name}: +${ev.coins} coins`); }
     else if (ev.kind === 'day') toast(`Daily bonus +${ev.xp} XP · ${ev.streak}-day streak`, '#5cc8ff');
   };
 
@@ -47,7 +47,7 @@
         <div class="pg-stats"><div><b>${c.streak}</b>day streak</div><div><b>${num(c.today.xp || 0)}</b>XP today</div><div><b>${num(c.stats.tools)}</b>tool calls</div><div><b>${num(c.stats.turns)}</b>turns finished</div><div><b>${num(c.stats.harvests)}</b>${skin === 'space' ? 'modules shipped' : 'harvests'}</div><div><b>${num(c.stats.coins)}</b>coins</div></div></div>
       <div><h4>Perks · ${E(skin)}</h4><ul class="pg-list">${perks.map(p => `<li class="${p.unlocked ? '' : 'lock'}"><b>${p.unlocked ? '✔' : '🔒'} L${p.lvl}</b><span>${E(p.name)}</span></li>`).join('')}</ul>${next ? `<p style="color:var(--dim);font-size:11px">Next: <b style="color:var(--amber)">${E(next.name)}</b> at level ${next.lvl}</p>` : '<p style="color:#7be0a0;font-size:11px">Everything unlocked!</p>'}</div>
       <div><h4>How to earn XP</h4><ul class="pg-list">${RC.HOW.map(([a, b]) => `<li><b>${E(a)}</b><span>${E(b)}</span></li>`).join('')}</ul></div>
-      <div><h4>Lands (projects)</h4><ul class="pg-list">${lands.length ? lands.map(([, l]) => `<li><b>L${l.level}</b><span>${E(l.name)} · ${l.plots.length} growing · ${l.harvested} done</span></li>`).join('') : '<li class="lock"><span>none yet</span></li>'}</ul></div>
+      <div><h4>Lands (projects)</h4><ul class="pg-list">${lands.length ? lands.map(([, l]) => `<li><b>L${l.level}</b><span>${E(l.name)} · ${l.plots.length} of ${RC.maxPlots(l.level)} plots · ${l.harvested} harvests · ${l.coins} coins</span></li>`).join('') : '<li class="lock"><span>none yet</span></li>'}</ul></div>
       <div><h4>Characters</h4><ul class="pg-list">${chars.length ? chars.map(x => `<li><b>L${x.level}</b><span>${E(x.title)} · ${E(String(x.name).slice(0, 34))}</span></li>`).join('') : '<li class="lock"><span>none yet</span></li>'}</ul>
         <p style="color:var(--dim);font-size:11px">Character perks: ${RC.CHAR_PERKS.map(([l, n]) => `L${l} ${E(n)}`).join(' · ')}</p></div>
       <div class="wide"><h4>Preview the world at another level</h4><div style="display:flex;gap:10px;align-items:center"><input type="range" id="pvRange" min="1" max="12" value="${RPGV.preview ? RPGV.preview.level : c.level}" style="flex:1"><b id="pvLbl" style="min-width:90px">${RPGV.preview ? 'Level ' + RPGV.preview.level : 'off (real)'}</b><button class="ctl" id="pvOff">OFF</button></div><p style="color:var(--dim);font-size:11px;margin:4px 0 0">Shows every perk and a full field at that level in the current skin. Only your view changes; saved progress is untouched.</p></div>

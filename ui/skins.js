@@ -131,10 +131,55 @@
      OFFICE: the default look + a few perks that unlock with the company level
      ====================================================================== */
   const catState = { x: 7.5, y: 4, tx: 7.5, ty: 12, flip: 1 };
+  /* Furnishings: the office version of crops and modules. Work gets things delivered to the project's room; a delivery is
+     unpacked, assembled and finally switched on. Free floor tiles, walls first (tiles used by the room's own decor are skipped). */
+  const OFFICE_SPOTS = [[2, 0], [4, 0], [1, 6], [2, 6], [3, 6], [5, 6], [0, 1], [0, 4], [6, 3], [4, 2], [1, 3], [4, 5], [6, 1], [1, 5], [1, 2], [4, 3]];
+  const spotCache = {};
+  const officeSpots = k => spotCache[k] || (spotCache[k] = (() => { const D = DIVS[k], taken = new Set(DECOR.filter(o => o.room === k).map(o => (o.x - D.ox) + ',' + (o.y - D.oy))); return OFFICE_SPOTS.filter(([x, y]) => !taken.has(x + ',' + y)); })());
+  RPGV.officeSpot = (key, land, cell) => { const i = land ? land.plots.findIndex(p => p.c === cell) : -1, s = i >= 0 && DIVS[key] ? officeSpots(key)[i] : null; return s ? iso(DIVS[key].ox + s[0] + .5, DIVS[key].oy + s[1] + .5, 0) : null; };
+  function furnishing(c, x, y, k, stage, t, ph) {
+    const [bx, by] = iso(x + .5, y + .5, 0), px = Math.round(bx), py = Math.round(by), on = stage >= 3, C = h => on ? h : shade(h, -.28), blink = n => Math.floor(t * n + ph) % 2 === 0;
+    shadow(c, px, py + 2, 13, 6, .22);
+    if (stage < 2) {                                                  // a delivery: small parcel, then a tall half-open box
+      const h = stage ? 17 : 9, s = stage ? .58 : .44, o = (1 - s) / 2; box(c, x + o, y + o, s, s, 0, h, '#e0b070', '#c08a4c', '#a06f3a');
+      R(c, px - 1, py - h - 5, 2, 10, '#f6e7c4'); R(c, px - 8, py - Math.round(h / 2) + 1, 5, 3, '#f6e7c4'); if (stage) { R(c, px - 6, py - h - 9, 5, 5, '#c08a4c'); R(c, px + 2, py - h - 8, 5, 4, '#a06f3a'); }
+      return;
+    }
+    let top = 26;
+    switch (k) {
+      case 0: box(c, x + .2, y + .2, .6, .6, 0, 24, C('#c2c8dc'), C('#9298b2'), C('#7a809a')); for (let i = 0; i < 3; i++) { R(c, px - 13, py - 1 - i * 7, 6, 1, '#4a4f6a'); R(c, px - 11, py - 3 - i * 7, 3, 1, on ? '#ffffff' : '#b0b5c8'); } top = 24; break;
+      case 1: ell(c, px, py, 6, 3, '#3a3f5a'); R(c, px - 1, py - 36, 2, 36, '#9aa0b8'); poly(c, [[px - 9, py - 34], [px + 9, py - 34], [px + 5, py - 46], [px - 5, py - 46]], on ? '#ffe9a8' : '#8f8870', '#5a5340');
+        if (on) { c.globalAlpha = .16 + .04 * sin(t * 2 + ph); ell(c, px, py - 32, 24, 15, '#ffe9a8'); ell(c, px, py + 2, 20, 9, '#ffe9a8'); c.globalAlpha = 1; } top = 46; break;
+      case 2: R(c, px - 14, py - 8, 2, 8, '#6a6f8a'); R(c, px + 9, py + 4, 2, 8, '#6a6f8a'); box(c, x + .1, y + .42, .8, .16, 8, 26, C('#dfe3ee'), C('#ffffff'), C('#c9cede'));
+        line(c, [px - 12, py - 28], [px + 1, py - 21], '#e05a5a', 1.5); line(c, [px - 12, py - 22], [px + 6, py - 13], '#4aa3df', 1.5); if (on) { line(c, [px - 10, py - 15], [px + 4, py - 8], '#5bbf6a', 1.5); R(c, px + 4, py - 20 + (blink(2) ? 0 : 1), 3, 3, '#f2c14e'); } top = 34; break;
+      case 3: box(c, x + .2, y + .2, .6, .6, 0, 34, C('#434968'), C('#2e3350'), C('#23273f')); for (let i = 0; i < 5; i++) { R(c, px - 15, py - 2 - i * 6, 11, 1, '#171a2c'); R(c, px - 14 + (i % 2) * 6, py - 5 - i * 6, 2, 2, on ? (Math.floor(t * (3 + i) + ph) % 3 ? '#5be37d' : '#1d5a36') : '#26304a'); R(c, px - 7, py - 2 - i * 6 - 1, 2, 1, on && i % 2 ? '#ffc83d' : '#26304a'); } top = 34; break;
+      case 4: box(c, x + .2, y + .2, .6, .6, 0, 36, C('#e0555c'), C('#bf3b43'), C('#9c2d35')); poly(c, [[px - 16, py - 27], [px - 5, py - 21], [px - 5, py - 8], [px - 16, py - 14]], on ? '#c9f3ff' : '#55687a');
+        if (on) { for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) R(c, px - 14 + j * 5, py - 23 + i * 5 + j * 2, 3, 3, ['#ffc83d', '#5be37d', '#5cc8ff', '#ff7ab8', '#b57bff', '#ff8a3d'][i * 2 + j]); R(c, px + 7, py - 14, 3, 2, blink(3) ? '#5be37d' : '#ffffff'); } top = 36; break;
+      case 5: box(c, x + .2, y + .2, .6, .6, 0, 32, C('#7a4fd6'), C('#5d38ae'), C('#48298c')); poly(c, [[px - 16, py - 25], [px - 4, py - 19], [px - 4, py - 9], [px - 16, py - 15]], on ? ['#5ff0ff', '#ff7ab8', '#ffe066', '#5be37d'][Math.floor(t * 2 + ph) % 4] : '#1a1030', '#120a24');
+        if (on) { R(c, px - 12 + Math.round(sin(t * 5 + ph) * 3), py - 18, 2, 2, '#120a24'); R(c, px - 8, py - 15 + Math.round(cos(t * 4 + ph) * 2), 2, 2, '#ffffff'); } R(c, px - 11, py - 4, 2, 4, '#ff5d6c'); R(c, px - 6, py - 2, 2, 2, '#ffc83d'); top = 32; break;
+      case 6: box(c, x + .15, y + .15, .7, .7, 0, 10, C('#4a4f6e'), C('#353a56'), C('#292d46')); box(c, x + .17, y + .17, .66, .66, 10, 17, 'rgba(150,235,255,.5)', 'rgba(70,170,230,.62)', 'rgba(50,140,205,.62)');
+        R(c, px - 15, py - 11, 4, 2, '#3fae6a'); R(c, px + 9, py - 12, 3, 3, '#3fae6a'); { const sw = on ? Math.round(sin(t * 1.4 + ph) * 5) : 0; R(c, px - 9 + sw, py - 13, 4, 2, '#ff8a3d'); R(c, px - 10 + sw + (sw > 0 ? -1 : 4), py - 14, 1, 4, '#ff8a3d'); R(c, px + 8 - sw, py - 16, 3, 2, '#ffe066'); }
+        if (on) for (let i = 0; i < 3; i++) { const f = (t * .6 + i / 3 + ph) % 1; R(c, px - 3 + i * 3, py - 10 - Math.round(f * 12), 1, 1, `rgba(255,255,255,${1 - f})`); } top = 27; break;
+      default: { box(c, x + .26, y + .26, .48, .48, 0, 13, C('#efecf8'), C('#c5bfdc'), C('#a39dc0')); const g = on ? '#ffd23f' : '#b8922e', g2 = on ? '#fff3a0' : '#d0aa48';
+        R(c, px - 4, py - 19, 8, 2, g); R(c, px - 1, py - 23, 2, 4, g); R(c, px - 6, py - 34, 12, 11, g); R(c, px - 6, py - 34, 12, 2, g2); R(c, px - 4, py - 31, 2, 6, g2); R(c, px - 9, py - 33, 3, 2, g); R(c, px - 9, py - 33, 2, 6, g); R(c, px + 6, py - 33, 3, 2, g); R(c, px + 7, py - 33, 2, 6, g);
+        if (on) { c.globalAlpha = .14 + .06 * sin(t * 3 + ph); ell(c, px, py - 28, 16, 14, '#ffd23f'); c.globalAlpha = 1; } top = 36; }
+    }
+    if (on && Math.floor(t * 2 + ph) % 4 === 0) { R(c, px + 8, py - top - 5, 1, 5, '#ffffff'); R(c, px + 6, py - top - 3, 5, 1, '#ffffff'); }            // "ready" twinkle
+  }
   window.SKINS.office = {
     custom: false,
     items(c, t, items, solo) {
-      const L = RPGV.level();
+      const L = RPGV.level(), now = RPGV.now();
+      for (const k of rooms()) {                                       // each project's furnishings, earned by its own work
+        const land = landFor(k); if (!land) continue; const D = DIVS[k], spots = officeSpots(k);
+        land.plots.slice(0, spots.length).forEach((p, i) => { const [rx, ry] = spots[i], x = D.ox + rx, y = D.oy + ry; items.push({ d: x + y + 1, f: () => furnishing(c, x, y, p.k, RC.stageOf(p, now), t, (p.c * 1.7) % 6) }); });
+      }
+      for (const a of AGENTS) {                                        // character levels show in the office too
+        const rc = RPGV.char(a.sid), lvl = rc ? rc.level : 1, dd = a.desk[0] + a.desk[1]; if (lvl < 4 || a.sleeping) continue;
+        items.push({ d: dd + 1.1, f: () => { const [fx, fy] = iso(a.desk[0] + .88, a.desk[1] + .12, 17), x = Math.round(fx), y = Math.round(fy); R(c, x, y - 11, 1, 11, '#c9cfe0'); R(c, x + 1, y - 11 + Math.round(sin(t * 3 + a.phase) * .6), 6, 4, lvl >= 8 ? '#ffd23f' : a.look.shirt); } });      // desk pennant
+        if (lvl >= 6 && a.state === 'working') items.push({ d: dd + 2.9, f: () => { c.strokeStyle = `rgba(255,220,100,${.35 + .25 * sin(t * 4)})`; c.lineWidth = 2; c.beginPath(); c.ellipse(a.ax, a.ay + 1, 15, 6, 0, 0, PI2); c.stroke(); } });
+        if (lvl >= 10) items.push({ d: dd + 3.1, f: () => { for (let i = 0; i < 5; i++) { const f = (t * .5 + i / 5 + a.phase) % 1; R(c, a.ax + Math.round(sin(i * 2.1 + a.phase) * 12), a.ay - 6 - Math.round(f * 44), 2, 2, `rgba(255,226,120,${.9 * (1 - f)})`); } } });
+      }
       if (L >= 2) for (const k of rooms()) { const D = DIVS[k]; [[3, 0], [5, 0], [0, 5], [4, 6]].forEach(([rx, ry], i) => { const o = { x: D.ox + rx, y: D.oy + ry, room: k, ph: i }; items.push({ d: o.x + o.y + 1, f: () => DRAW_DECOR.plant(c, o, t) }); }); }
       if (L >= 8) for (const a of AGENTS) if (!a.head) items.push({ d: a.desk[0] + a.desk[1] + 1.05, f: () => { const [gx, gy] = a.desk; c.strokeStyle = '#f5c542'; c.lineWidth = 1.5; c.beginPath(); let p = iso(gx + .05, gy + .05, 16); c.moveTo(p[0], p[1]); p = iso(gx + .05, gy + .95, 16); c.lineTo(p[0], p[1]); p = iso(gx + .95, gy + .95, 16); c.lineTo(p[0], p[1]); p = iso(gx + .95, gy + .05, 16); c.lineTo(p[0], p[1]); c.stroke(); } });
       if (solo) return;

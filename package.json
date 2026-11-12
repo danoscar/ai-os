@@ -11,7 +11,12 @@
     "start": "node server.js",
     "test": "node dev/test-providers.js",
     "install-hook": "node install-hook.js",
-    "uninstall-hook": "node install-hook.js --uninstall"
+    "uninstall-hook": "node install-hook.js --uninstall",
+    "service:install": "node service.js install",
+    "service:uninstall": "node service.js uninstall",
+    "service:status": "node service.js status",
+    "service:restart": "node service.js restart",
+    "service:logs": "node service.js logs"
   },
   "engines": {
     "node": ">=18"
@@ -25,6 +30,8 @@
     "brain.js",
     "rpg.js",
     "repos.js",
+    "stats.js",
+    "service.js",
     "ui/",
     "docs/",
     "hook/",

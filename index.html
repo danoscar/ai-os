@@ -87,6 +87,50 @@ button{font:inherit;color:inherit}
 .r-det{border-top:1px dashed var(--line);margin-top:4px;padding-top:6px;font-size:11px;display:grid;grid-template-columns:1fr 1fr;gap:10px}.r-det h5{margin:0 0 3px;color:var(--dim);font-size:10px;letter-spacing:.1em}.r-det div div{padding:1px 0;color:#e3defa}.r-det code{color:#ffd77a}
 .r-empty{padding:40px;color:var(--dim);text-align:center;line-height:1.7}.r-empty code{color:#ffd77a}
 @media (max-width:1100px){.app.on-repos{grid-template-areas:"top" "tabs" "repos";grid-template-rows:auto auto 82vh}.r-det{grid-template-columns:1fr}}
+/* ---------- full-width pages: Insights + Guide ---------- */
+.page{grid-area:page;display:none;overflow:hidden}
+.app.on-insights,.app.on-guide{grid-template-rows:auto auto minmax(0,1fr);grid-template-areas:"top top" "tabs tabs" "page page"}
+.app.on-insights .office,.app.on-insights .console,.app.on-insights .logp,.app.on-guide .office,.app.on-guide .console,.app.on-guide .logp{display:none}
+.app.on-insights #insights{display:block}.app.on-guide #guide{display:grid;grid-template-columns:230px minmax(0,1fr)}
+.mt-sp{flex:1}.mtabs .lvbtn{margin-left:0}.ntf{align-self:center;white-space:nowrap}.ntf[aria-pressed=true]{box-shadow:inset 0 0 0 2px var(--amber)}
+.ins{height:100%;overflow:auto;padding:14px 16px;display:grid;gap:14px;align-content:start}
+.ins h3{margin:0 0 8px;font-size:11px;letter-spacing:.12em;color:var(--dim);font-weight:700}.ins h3 small{letter-spacing:0;font-weight:400;margin-left:8px}
+.i-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.i-tile{background:#0f0b26;border:2px solid var(--line);padding:10px 12px}.i-tile b{display:block;font-size:22px;line-height:1.2;color:#fff}.i-tile span{font-size:10px;letter-spacing:.1em;color:var(--dim)}.i-tile small{display:block;color:var(--dim);margin-top:2px}
+.i-card{background:#0f0b26;border:2px solid var(--line);padding:12px 14px;min-width:0}
+.i-two{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:14px}
+.i-leg{display:flex;gap:16px;font-size:11px;color:var(--ink);margin-bottom:8px;flex-wrap:wrap}.i-leg i{display:inline-block;width:10px;height:10px;margin-right:6px;vertical-align:-1px}
+.i-chart{display:flex;align-items:flex-end;gap:2px;height:150px;border-bottom:1px solid #3d3478;position:relative}
+.i-col{flex:1;display:flex;flex-direction:column-reverse;gap:2px;height:100%;min-width:0;position:relative;cursor:default}
+.i-col:hover::before{content:"";position:absolute;inset:0;background:rgba(255,255,255,.06)}
+.i-col i{display:block;border-radius:3px 3px 0 0;min-height:0}.i-col.now::after{content:"";position:absolute;left:0;right:0;bottom:-5px;height:3px;background:var(--ink)}
+.i-x{display:flex;gap:2px;font-size:9px;color:var(--dim);margin-top:6px}.i-x span{flex:1;text-align:center;min-width:0;overflow:hidden}
+.i-y{position:absolute;right:0;top:-2px;font-size:9px;color:var(--dim)}
+.i-tbl{width:100%;border-collapse:collapse;font-size:12px}.i-tbl th{font-size:9.5px;letter-spacing:.1em;color:var(--dim);text-align:right;font-weight:700;padding:3px 6px;border-bottom:1px solid #3d3478}.i-tbl th:first-child,.i-tbl td:first-child{text-align:left}
+.i-tbl td{padding:4px 6px;text-align:right;border-bottom:1px solid #1d1745;white-space:nowrap}.i-tbl td:first-child{white-space:normal;word-break:break-word}
+.i-bar{display:flex;gap:2px;height:8px;width:120px;margin-left:auto}.i-bar i{display:block;height:100%;border-radius:0 3px 3px 0}
+.i-tipb{position:fixed;z-index:70;pointer-events:none;background:#120d2c;border:2px solid #6a5acd;padding:6px 9px;font-size:11px;line-height:1.5;display:none;box-shadow:4px 4px 0 #06041a}.i-tipb b{color:#fff}
+.i-note{color:var(--dim);font-size:11px;line-height:1.6}.i-empty{padding:40px;text-align:center;color:var(--dim);line-height:1.8}
+/* guide */
+.g-nav{border-right:2px solid var(--line);overflow:auto;padding:10px 0}.g-nav button{display:block;width:100%;text-align:left;background:none;border:0;border-left:3px solid transparent;padding:6px 14px;color:var(--dim);font:inherit;font-weight:700;font-size:11px;letter-spacing:.05em;cursor:pointer}
+.g-nav button:hover{color:var(--ink)}.g-nav button.on{color:var(--ink);border-left-color:var(--amber);background:#241e48}
+.g-main{overflow:auto;padding:18px 26px 40px;line-height:1.65;font-size:13px}.g-main>section{max-width:860px;margin-bottom:34px;scroll-margin-top:10px}
+.g-main h2{font-size:15px;letter-spacing:.08em;margin:0 0 8px;color:#fff}.g-main h4{margin:14px 0 4px;font-size:12px;color:var(--amber);letter-spacing:.05em}
+.g-main p{margin:0 0 9px;color:#dcd6fb}.g-main ul,.g-main ol{margin:0 0 9px;padding-left:20px;color:#dcd6fb}.g-main li{margin:2px 0}.g-main code{color:#ffd77a;background:#0f0b26;padding:0 4px}
+.g-main kbd{background:#2a2358;border:1px solid #4a3f93;border-bottom-width:3px;padding:0 5px;font:inherit;font-size:11px}
+.g-cmd{display:flex;align-items:stretch;margin:4px 0 10px;max-width:640px}.g-cmd code{flex:1;background:#07050f;border:2px solid var(--line);border-right:0;padding:6px 10px;white-space:pre-wrap;word-break:break-all}.g-cmd button{border:2px solid var(--line);background:#2a2358;padding:0 12px;cursor:pointer;font-weight:700;font-size:10px;letter-spacing:.08em}
+.g-check{list-style:none;padding:0;margin:0 0 10px;display:grid;gap:6px;max-width:760px}.g-check li{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:8px;align-items:start;background:#0f0b26;border:2px solid var(--line);padding:7px 10px;margin:0}
+.g-check .ok{color:#7be0a0}.g-check .no{color:var(--amber)}.g-check .opt{color:var(--dim)}.g-check small{display:block;color:var(--dim)}.g-check button{align-self:center}
+.g-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:8px 0 12px}.g-grid div{background:#0f0b26;border:2px solid var(--line);padding:9px 12px}.g-grid b{display:block;color:#fff;margin-bottom:3px}
+.g-tour{position:fixed;z-index:80;background:#2a2358;border:2px solid var(--amber);padding:12px 14px;max-width:320px;box-shadow:5px 5px 0 #06041a;font-size:12px;line-height:1.55}.g-tour b{display:block;color:var(--amber);margin-bottom:4px;letter-spacing:.06em}.g-tour div{display:flex;gap:6px;justify-content:flex-end;margin-top:10px;align-items:center}.g-tour small{margin-right:auto;color:var(--dim)}
+.mtab.new::after{content:"";display:inline-block;width:7px;height:7px;background:var(--amber);margin-left:7px;vertical-align:1px;animation:gnew 1.2s steps(2) infinite}@keyframes gnew{50%{opacity:.2}}
+.g-ring{position:fixed;z-index:79;border:3px solid var(--amber);box-shadow:0 0 0 9999px rgba(6,4,26,.62);pointer-events:none;transition:all .25s}
+/* colony map + focus mode */
+.mapcv{position:absolute;inset:0;width:100%;height:100%;z-index:5;cursor:pointer;image-rendering:auto}
+.zoom button[aria-pressed=true]{box-shadow:inset 0 0 0 2px var(--amber);color:var(--amber)}
+.app.focus{grid-template-areas:"top top" "tabs tabs" "office office" "office office"}.app.focus .console,.app.focus .logp{display:none}
+.app.focus.on-brain{grid-template-areas:"top top" "tabs tabs" "brain brain"}.app.focus.on-repos{grid-template-areas:"top top" "tabs tabs" "repos repos"}.app.focus.on-insights,.app.focus.on-guide{grid-template-areas:"top top" "tabs tabs" "page page"}
+@media (max-width:1100px){.app.on-insights,.app.on-guide{grid-template-areas:"top" "tabs" "page";grid-template-rows:auto auto 82vh}.i-two{grid-template-columns:1fr}.app.on-guide #guide{grid-template-columns:1fr}.g-nav{display:none}.app.focus{grid-template-areas:"top" "tabs" "office"}}
 /* ---------- agent chat ---------- */
 .chat{height:240px;overflow:auto;background:#07050f;border:2px solid var(--line);padding:8px 10px;display:flex;flex-direction:column;gap:6px;font-size:12px}
 .chat .u,.chat .a{max-width:88%;padding:5px 9px;white-space:pre-wrap;word-break:break-word;line-height:1.45}
@@ -352,6 +396,10 @@ button{font:inherit;color:inherit}
     <button class="mtab" role="tab" data-mt="office" aria-selected="true">▣ OFFICE</button>
     <button class="mtab" role="tab" data-mt="brain" aria-selected="false">◈ SECOND BRAIN</button>
     <button class="mtab" role="tab" data-mt="repos" aria-selected="false">⎇ REPOS</button>
+    <button class="mtab" role="tab" data-mt="insights" aria-selected="false">◔ INSIGHTS</button>
+    <button class="mtab" role="tab" data-mt="guide" aria-selected="false">? GUIDE</button>
+    <span class="mt-sp"></span>
+    <button class="ctl ntf" id="ntfBtn" title="Browser notifications when a session needs you or finishes" aria-pressed="false">🔔 OFF</button>
     <button class="lvbtn" id="lvBtn" title="Progress, perks and how to level up"><b id="lvNum">★ LV 1</b><span class="lvbar"><i id="lvFill"></i></span><small id="lvXp">0 XP</small></button>
   </nav>
 
@@ -369,13 +417,18 @@ button{font:inherit;color:inherit}
         <span style="--c:#5be37d"><i></i>BOT BIZ · AUTONOMOUS</span>
         <span style="--c:#5cc8ff"><i></i>AGENCY</span>
       </div>
-      <div class="zoom"><button id="zOut" title="Zoom out" aria-label="Zoom out">−</button><button id="zFit" title="Fit to window">FIT</button><button id="zIn" title="Zoom in" aria-label="Zoom in">+</button></div>
+      <div class="zoom"><button id="mapBtn" title="Colony map: every project on one screen (M)" aria-pressed="false">⬡ MAP</button><button id="focusBtn" title="Focus: give the whole window to the world (F)" aria-pressed="false">⛶</button><button id="zOut" title="Zoom out" aria-label="Zoom out">−</button><button id="zFit" title="Fit to window">FIT</button><button id="zIn" title="Zoom in" aria-label="Zoom in">+</button></div>
     </div>
     <div class="stage-wrap" id="stageWrap">
       <div class="stage" id="stage"><canvas id="cv"></canvas></div>
       <div class="tip" id="tip" role="tooltip"></div>
+      <canvas id="mapCv" class="mapcv" hidden aria-label="Colony map of every project"></canvas>
+      <div class="tip" id="mapTip" role="tooltip"></div>
     </div>
   </section>
+
+  <section class="page panel" id="insights" aria-label="Insights"><div class="ins" id="insBody"></div></section>
+  <section class="page panel" id="guide" aria-label="Guide"><nav class="g-nav" id="gNav"></nav><div class="g-main" id="gMain"></div></section>
 
   <section class="brain panel" id="brain" aria-label="Second brain">
     <aside class="b-side">
@@ -1284,7 +1337,7 @@ function drawOverlay(c, a, t) {
     const dd = iso(a.desk[0] + 1, a.desk[1] + 1, 0); c.beginPath(); c.moveTo(ax, ay - 90 - q * 4); c.lineTo(ax - 7, ay - 100 - q * 4); c.lineTo(ax + 7, ay - 100 - q * 4); c.closePath(); c.fillStyle = '#fff'; c.fill(); c.globalAlpha = 1;
   }
   // nameplate
-  const hov = hoverId === a.id, name = (a.plate || a.name).toUpperCase(), s = textSprite(name, hov ? '#ffffff' : '#e6e1ff'), w = s.w + (a.head ? 24 : 15), x = ax - Math.round(w / 2), y = ay + 9;
+  const hov = hoverId === a.id, name = (a.plate || a.name).toUpperCase(), s = textSprite(name, hov ? '#ffffff' : a.gold ? '#ffd23f' : '#e6e1ff'), w = s.w + (a.head ? 24 : 15), x = ax - Math.round(w / 2), y = ay + 9;
   R(c, x - 1, y - 1, w + 2, 12, hov ? '#ffffff' : D.color); R(c, x, y, w, 10, hov ? '#2a2060' : '#150f33');
   const led = a.state === 'working' ? '#5be37d' : a.state === 'waiting' ? (Math.floor(t * 3) % 2 ? '#ffc83d' : '#8a6a1a') : '#8a86b8';
   R(c, x + 3, y + 3, 4, 4, led);
@@ -1349,6 +1402,7 @@ function renderFrame(t) {
   c.setTransform(K, 0, 0, K, 0, 0); c.imageSmoothingEnabled = false;
   const solo = soloKey(), sk = window.SKINS[window.SKINID], custom = !!(sk && sk.custom);
   if (custom) sk.world(c, t); else if (!solo) { drawHub(c, t); drawPackets(c); }
+  if (window.sectorFX) window.sectorFX(c, t, 0);
   const dimA = (a, fn) => () => { if (a.sleeping || a.done) c.globalAlpha = .5; fn(); c.globalAlpha = 1; };
   const items = [];
   for (const a of AGENTS) {
@@ -1361,6 +1415,7 @@ function renderFrame(t) {
   if (!custom) for (const o of DECOR) if (!solo || o.room === solo) items.push({ d: o.x + o.y + 1 + (o.type === 'shelf' || o.type === 'server' ? -.2 : 0), f: () => DRAW_DECOR[o.type](c, o, t) });
   items.sort((p, q) => p.d - q.d); items.forEach(i => i.f());
   if (sk && sk.post) sk.post(c, t);
+  if (window.sectorFX) window.sectorFX(c, t, 1);
   for (const a of AGENTS) { if (a.sleeping || a.done) c.globalAlpha = .55; drawOverlay(c, a, t); c.globalAlpha = 1; }
   drawFX(c);
 }
@@ -1668,7 +1723,7 @@ function applyOffice(o) {
     a.stats.tokens = it.tokens; a.stats.done = it.tools;
     a.specs = [['Project', it.project], ['Tool', { codex: 'Codex', gemini: 'Gemini CLI', grok: 'Grok Build', grokbot: 'Grok Bot app' }[it.provider] || 'Claude Code'], ['Status', (it.sleeping ? 'sleeping' : it.done ? 'finished' : it.status) + (it.since ? ' · ' + ago(it.since) : '')], ['Model', it.model], ['Context', kfmt(it.ctx) + ' tok'],
       ['Tool calls*', fmt(it.tools)], ['Tokens*', kfmt(it.tokens)], ['Started', it.startedAt ? ago(it.startedAt) + ' ago' : '—'], ['Process', it.sleeping ? 'not running' : it.pid ? 'pid ' + it.pid : (it.provider && it.provider !== 'claude') ? 'running' : it.done ? 'finished' : 'subagent'], ['Kind', it.kind === 'sub' ? 'subagent' : 'session']];
-    { const rc = window.RPGV && RPGV.char(it.sessionId); a.plate = rc ? `${a.name} L${rc.level}` : null; if (rc) a.specs.splice(1, 0, ['Level', `Lv ${rc.level} · ${rc.title}`], ['XP', fmt(rc.xp) + ' / ' + fmt(rc.hi)]); }
+    { const rc = window.RPGV && RPGV.char(it.sessionId); a.plate = rc ? `${a.name} L${rc.level}` : null; a.gold = !!rc && rc.level >= 8; if (rc) a.specs.splice(1, 0, ['Level', `Lv ${rc.level} · ${rc.title}`], ['XP', fmt(rc.xp) + ' / ' + fmt(rc.hi)]); }
     // log: status changes + new activity (silent on first sight so reloads don't flood)
     if (m.status !== null && m.status !== it.status) agentLog(a, it.status === 'waiting' ? 'WARN' : it.status === 'working' ? 'INFO' : 'OK', it.status === 'waiting' ? a.subtask : it.status === 'working' ? 'started working' : 'finished — now idle');
     if (m.act !== null && act && act.id !== m.act) agentLog(a, 'TASK', act.text);
@@ -1792,6 +1847,9 @@ $('#modeTag').addEventListener('click', () => { if (OBS) location.search = '?mod
 <script src="ui/skins.js"></script>
 <script src="ui/progress.js"></script>
 <script src="ui/repos.js"></script>
+<script src="ui/world.js"></script>
+<script src="ui/insights.js"></script>
+<script src="ui/guide.js"></script>
 <script>
 'use strict';
 /* =====================================================================

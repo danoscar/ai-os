@@ -12,7 +12,10 @@ git clone <this repo> && cd pixel-office
 node server.js          # then open http://localhost:8787
 ```
 
-Opening `index.html` directly (no server) gives a simulated demo.
+Opening `index.html` directly (no server) gives a simulated demo. New here? Open the **? GUIDE** tab in the app: it has a
+live setup checklist, a one-minute tour and the full manual.
+
+To keep it running without a terminal: `node service.js install` (see [Run in the background](#run-in-the-background)).
 
 ## What you see (Observe mode, the default)
 Same idea as [habblaud](https://github.com/marmottajr/habblaud): nothing is launched, the bridge reads what Claude Code
@@ -32,6 +35,37 @@ focused on it. "All projects" returns to the overview. Two folders with the same
 
 Tool calls\* and tokens\* count from when the bridge started. Obvious secrets in commands (Bearer tokens, `sk-…`, `ghp_…`,
 passwords in URLs, `KEY=…`) are masked before anything reaches the browser.
+
+## Colony map, sector alerts, focus mode
+- **⬡ MAP** (`M`): every project on one screen as hex sectors, drawn in the current skin (office towers, farm fields, space
+  domes). Little people show who is working, waiting or asleep; a sector that needs you pulses amber. Click a sector to open
+  that project, click HQ to see all of them.
+- **Sector alerts**: inside the world, a room with a session waiting on you pulses amber with a NEEDS YOU sign, and a busy
+  room shows running lights around its edge. Works in every skin.
+- **⛶ Focus** (`F`): hides the console and the log so the world fills the window.
+- **🔔 Notifications**: opt-in browser notifications when a session needs you or finishes while the tab is in the background.
+
+## Insights tab
+**◔ INSIGHTS** shows where the time went: working time, time sessions spent *waiting on you*, tokens, tool calls and approvals,
+by hour, by day (14 days) and by project and AI tool, plus a few plain-language observations. The bridge samples once a second
+and keeps 30 days in `~/.pixel-office/stats.json`. It only counts while the bridge runs.
+
+## Run in the background
+```bash
+node service.js install            # start now and at every login, no terminal needed
+node service.js install --notify   # same, plus desktop notifications when a session needs you and no tab is open
+node service.js status             # installed? running? where are the logs?
+node service.js restart | stop | start | logs | open
+node service.js uninstall          # stop it and remove the service
+```
+A per-user service, no sudo: a LaunchAgent on macOS (`~/Library/LaunchAgents/com.pixeloffice.bridge.plist`), a
+`systemd --user` unit on Linux (`~/.config/systemd/user/pixel-office.service`; add `loginctl enable-linger "$USER"` to keep it
+running after logout), a logon task on Windows. It restarts on crashes and logs to `~/.pixel-office/logs/bridge.log`.
+`--port N` picks another port. The install remembers the `PATH` of the terminal you ran it from (so the service finds
+`claude`, `gh`, `glab`); tokens in your environment are never copied into the service file. Tested end to end on macOS;
+the Linux and Windows paths are written but not yet tested. Run `install` again after moving the folder or changing Node.
+
+To remove every trace: `node service.js uninstall`, `node install-hook.js --uninstall`, then delete `~/.pixel-office`.
 
 ## Skins and the RPG layer
 Pick a **skin** in the dropdown above the floor: **Office** (default), **Farm** (every project is a fenced field; work plants crops that grow, ripen and get harvested; farmers instead of office workers; sun, clouds, rain, day and night) or **Space** (hex sectors joined by corridors; sessions are domes with little robots; work builds modules that finish and ship; drifting asteroids, meteor showers). Weather and time of day have their own dropdowns.
@@ -98,7 +132,9 @@ writing one provider (`providers/*.js`: scan files → `{id, project, name, stat
 it in `observer.js`.
 
 ## Configuration
-`PORT` (8787), `CLAUDE_BIN` (path to the `claude` binary), `TOKEN_BUDGET`, `GITHUB_TOKEN` / `GITLAB_TOKEN` / `GITLAB_HOST` (optional, Repos tab), `CLAUDE_CONFIG_DIR` (default: every `~/.claude*` that has a `sessions/` folder).
+`PORT` (8787), `CLAUDE_BIN` (path to the `claude` binary), `TOKEN_BUDGET`, `GITHUB_TOKEN` / `GITLAB_TOKEN` / `GITLAB_HOST` (optional, Repos tab), `CLAUDE_CONFIG_DIR` (default: every `~/.claude*` that has a `sessions/` folder), `PIXEL_OFFICE_NOTIFY=1` (desktop notifications from the bridge when no tab is open; set by `service.js install --notify`).
+
+Ideas and what could come next: [docs/IDEAS.md](docs/IDEAS.md).
 
 ## Security notes
 Local only (Host/Origin checks, JSON-only POSTs). The bridge can run `claude` for you and show your notes, so don't expose the
