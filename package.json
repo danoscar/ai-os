@@ -32,6 +32,7 @@
     "repos.js",
     "stats.js",
     "service.js",
+    "launch.js",
     "ui/",
     "docs/",
     "hook/",

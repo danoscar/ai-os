@@ -85,14 +85,45 @@ one. Sending continues that same session with `claude -p --resume <id>` using yo
 - If Claude needs a permission mid-reply, an Allow/Deny card appears in the Decision Console and the reply continues once you allow.
 - Replies are visible as they are written, because the transcript is the source of truth.
 
-## Answer permission prompts from the office (opt-in hook)
+## Quick prompts and new sessions
+- **Quick prompts**: saved prompts shown as buttons in every session card ("Continue", "Status", "Run tests"…). One click sends
+  it to that session; Alt-click puts it in the box to edit first. **⚡ PROMPT** in the top bar sends one prompt to several
+  sessions at once and opens the editor, where a prompt can be for every project or for one. Stored in
+  `~/.pixel-office/config.json`.
+- **＋ SESSION**: pick a project the office already knows, pick the tool (Claude Code, Codex, Gemini CLI, Grok Build) and an
+  optional first prompt; a terminal window opens in that folder with the tool running. Repos that are in the office get the
+  same button on the Repos tab. On macOS it opens Terminal (set `PIXEL_OFFICE_TERMINAL=iTerm` or another app to change it);
+  on Linux the first terminal program found. Tested on macOS only.
+- Safety: only folders where a session has been seen can be opened, the tool comes from a fixed list, and the prompt is
+  written to a private temporary script with strict quoting rather than placed on a command line.
+
+## Answer from the office (opt-in hooks)
+Everything here is opt-in and installed by one script. A timestamped backup of `settings.json` is written before any change,
+and `node install-hook.js --uninstall` removes all of it. `node install-hook.js --status` shows what is on.
+
 ```bash
-node install-hook.js              # adds a PermissionRequest hook to ~/.claude/settings.json (backup first)
-node install-hook.js --uninstall  # removes it
+node install-hook.js            # approvals + questions
+node install-hook.js --inbox    # also: message a session while it is busy
+node install-hook.js --usage    # also: subscription usage bars
+node install-hook.js --all      # all three
 ```
-New sessions then also send permission prompts to the Decision Console (**Allow / ★ Always / Deny**). It is fail-safe: if the
-bridge isn't running or no office page is open, the hook exits silently and the normal terminal prompt works as usual (you can
-always answer there instead; first answer wins). Questions (AskUserQuestion) stay in the terminal.
+
+- **Approvals**: a permission prompt becomes a card in the Decision Console with Allow, Always (the rule Claude Code suggests)
+  and Deny. Type a line before Deny to tell the session what to do instead. The terminal prompt keeps working; whichever you
+  answer first wins.
+- **Questions**: when a session asks a multiple-choice question, the card shows every option as a button, plus a free-text
+  "Other". "Answer in terminal" leaves it to the terminal. Set `PIXEL_OFFICE_QUESTIONS=0` to keep questions in the terminal.
+- **Message a busy session** (`--inbox`): chat and quick prompts no longer need the session to be idle. Your text is written to
+  `~/.pixel-office/inbox/` and a small hook hands it to the session after its next tool call, or when its turn ends. With
+  nothing waiting, the hook is one file check.
+- **Usage bars** (`--usage`): the header shows your 5-hour and weekly subscription limits and when they reset. Claude Code only
+  gives these numbers to the status line command, so this wraps yours: it copies the two percentages to
+  `~/.pixel-office/usage.json` and then runs your own status line unchanged.
+- Fail-safe: if the bridge is not running, no office page is open, or anything goes wrong, every hook steps aside and Claude Code
+  behaves as if it were not installed. Nothing is ever approved without a click.
+
+Also in the session card: **▶ OPEN IN TERMINAL** reopens a session that is not running (`claude --resume`).
+Keys: `N` jumps to the next session waiting on you, `B` to the busiest one.
 
 ## Second Brain tab
 Click **◈ SECOND BRAIN** and point it at a folder of notes. Detected Obsidian vaults are offered automatically (read from
@@ -132,7 +163,7 @@ writing one provider (`providers/*.js`: scan files → `{id, project, name, stat
 it in `observer.js`.
 
 ## Configuration
-`PORT` (8787), `CLAUDE_BIN` (path to the `claude` binary), `TOKEN_BUDGET`, `GITHUB_TOKEN` / `GITLAB_TOKEN` / `GITLAB_HOST` (optional, Repos tab), `CLAUDE_CONFIG_DIR` (default: every `~/.claude*` that has a `sessions/` folder), `PIXEL_OFFICE_NOTIFY=1` (desktop notifications from the bridge when no tab is open; set by `service.js install --notify`).
+`PORT` (8787), `CLAUDE_BIN` (path to the `claude` binary), `TOKEN_BUDGET`, `GITHUB_TOKEN` / `GITLAB_TOKEN` / `GITLAB_HOST` (optional, Repos tab), `CLAUDE_CONFIG_DIR` (default: every `~/.claude*` that has a `sessions/` folder), `PIXEL_OFFICE_TERMINAL` (terminal app for ＋ SESSION), `PIXEL_OFFICE_NOTIFY=1` (desktop notifications from the bridge when no tab is open; set by `service.js install --notify`).
 
 Ideas and what could come next: [docs/IDEAS.md](docs/IDEAS.md).
 

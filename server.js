@@ -25,6 +25,7 @@ const { Rpg } = require('./rpg');
 const repos = require('./repos');
 const { Stats } = require('./stats');
 const service = require('./service');
+const launch = require('./launch');
 const rpg = new Rpg();
 const stats = new Stats();
 const VERSION = (() => { try { return require('./package.json').version; } catch { return '0'; } })();
@@ -221,7 +222,14 @@ function cancel(id) {
 /* ---------- permission requests from the hook (answer approvals from the office) ---------- */
 const perms = new Map(); let permSeq = 0;
 const PERM_TTL = 3600e3;
-const permView = p => ({ id: p.id, sessionId: p.sessionId, agentId: p.agentId, tool: p.tool, summary: p.summary, full: p.full, created: p.created, suggestions: p.suggestions.length });
+const permView = p => ({ id: p.id, sessionId: p.sessionId, agentId: p.agentId, tool: p.tool, summary: p.summary, full: p.full, created: p.created, suggestions: p.suggestions.length, questions: p.questions || undefined });
+/* an AskUserQuestion relayed by the hook: what the page needs to draw it (the original input is kept to echo back with the answers) */
+function questionView(input) {
+  const qs = Array.isArray(input.questions) ? input.questions.slice(0, 6) : []; if (!qs.length) return null;
+  const out = qs.map(q => ({ question: mask(clip(String(q && q.question || ''), 600)), header: clip(String(q && q.header || ''), 40), multi: !!(q && q.multiSelect),
+    options: (Array.isArray(q && q.options) ? q.options : []).slice(0, 8).map(o => ({ label: clip(String(o && o.label || ''), 160), description: mask(clip(String(o && o.description || ''), 500)) })).filter(o => o.label) }));
+  return out.every(q => q.question) ? out : null;
+}
 const permsList = () => [...perms.values()].filter(p => p.status === 'pending').map(permView);
 const summarize = (tool, i) => mask(clip(oneLine(i.command || i.file_path || i.path || i.url || i.query || i.pattern || i.description || JSON.stringify(i)), 160));
 let permDirty = false;
@@ -229,7 +237,9 @@ let permDirty = false;
 function registerPerm(b) {
   if (!clients.size) return { ok: false, reason: 'no office page open' };            // fail-safe: terminal decides
   const i = (b.tool_input && typeof b.tool_input === 'object') ? b.tool_input : {};
-  const p = { id: 'p' + (++permSeq) + '-' + Date.now().toString(36), sessionId: String(b.session_id || ''), agentId: b.agent_id ? String(b.agent_id) : '', tool: clip(String(b.tool_name), 60),
+  const questions = b.tool_name === 'AskUserQuestion' ? questionView(i) : null;
+  if (b.tool_name === 'AskUserQuestion' && !questions) return { ok: false, reason: 'unreadable question' };       // terminal asks
+  const p = { questions, rawInput: questions ? i : null, id: 'p' + (++permSeq) + '-' + Date.now().toString(36), sessionId: String(b.session_id || ''), agentId: b.agent_id ? String(b.agent_id) : '', tool: clip(String(b.tool_name), 60),
     summary: summarize(String(b.tool_name), i), full: mask(JSON.stringify(i, null, 2).slice(0, 4000)), created: Date.now(),
     suggestions: Array.isArray(b.permission_suggestions) ? b.permission_suggestions.slice(0, 10) : [], status: 'pending', waiters: new Set(), dropAt: 0 };
   perms.set(p.id, p); permDirty = true; return { ok: true, id: p.id };
@@ -246,9 +256,22 @@ function waitPerm(id, req, res) {
 }
 function decidePerm(b) {
   const p = perms.get(String(b.id)); if (!p || p.status !== 'pending') return { status: 404, error: 'unknown or already answered' };
+  if (b.behavior === 'skip') {                                           // "answer it in the terminal": the hook steps aside without deciding
+    perms.delete(p.id); permDirty = true; for (const w of p.waiters) { clearTimeout(w.timer); send(w.res, 200, { status: 'gone' }); } p.waiters.clear(); return { ok: true };
+  }
+  let updatedInput;
+  if (p.questions && b.behavior !== 'deny') {                            // answers: one per question, keyed by the question's own text (what Claude Code expects)
+    const src = Array.isArray(b.answers) ? b.answers : [], raw = p.rawInput.questions, answers = {};
+    for (let n = 0; n < p.questions.length; n++) {
+      const v = Array.isArray(src[n]) ? src[n].map(x => clip(oneLine(x), 300)).filter(Boolean).join(', ') : clip(oneLine(src[n] ?? ''), 600);
+      if (!v) return { status: 400, error: `question ${n + 1} has no answer` };
+      answers[String(raw[n].question)] = v;
+    }
+    updatedInput = { ...p.rawInput, answers };
+  }
   const behavior = b.behavior === 'deny' ? 'deny' : 'allow';
   const sug = Number.isInteger(b.suggestion) ? p.suggestions[b.suggestion] : undefined;
-  p.result = { behavior, ...(behavior === 'allow' && sug ? { updatedPermissions: [sug] } : {}), ...(behavior === 'deny' && b.message ? { message: clip(oneLine(b.message), 500) } : {}) };
+  p.result = { behavior, ...(updatedInput ? { updatedInput } : {}), ...(behavior === 'allow' && sug ? { updatedPermissions: [sug] } : {}), ...(behavior === 'deny' && b.message ? { message: clip(oneLine(b.message), 500) } : {}) };
   p.status = 'decided'; permDirty = true;
   { const sess = (office.sessions || []).find(x => x.sessionId === p.sessionId); stats.approval(sess && sess.project, Date.now() - p.created); const evs = rpg.approval(sess && sess.root); emit({ type: 'rpg', state: rpg.publicState() }); evs.forEach(e => emit({ type: 'rpg_event', ...e })); }
   if (p.chat) {
@@ -265,9 +288,33 @@ function sweepPerms() {
   for (const p of perms.values()) if (p.status === 'pending' && ((p.dropAt && p.dropAt < now) || now - p.created > PERM_TTL)) { perms.delete(p.id); permDirty = true; }
 }
 
-function hookInstalled() {
-  const os = require('os');
-  try { return fs.readdirSync(os.homedir()).filter(n => /^\.claude(-|$)/.test(n)).some(n => { try { return fs.readFileSync(path.join(os.homedir(), n, 'settings.json'), 'utf8').includes('permission-hook.mjs'); } catch { return false; } }); } catch { return false; }
+const os = require('os');
+let hookCache = { at: 0, text: '' };
+function settingsHave(mark) {                                            // is one of our optional pieces present in a Claude Code settings.json? (re-read at most every 5 s)
+  if (Date.now() - hookCache.at > 5000) { let t = ''; try { for (const n of fs.readdirSync(os.homedir()).filter(n => /^\.claude(-|$)/.test(n))) { try { t += fs.readFileSync(path.join(os.homedir(), n, 'settings.json'), 'utf8'); } catch { /* none */ } } } catch { /* no home */ } hookCache = { at: Date.now(), text: t }; }
+  return hookCache.text.includes(mark);
+}
+const hookInstalled = () => settingsHave('permission-hook.mjs'), inboxInstalled = () => settingsHave('inbox-hook.mjs'), usageInstalled = () => settingsHave('statusline-tap.mjs');
+
+/* ---------- inbox: messages for a session that is busy, picked up by hook/inbox-hook.mjs at its next step ---------- */
+const INBOX = path.join(os.homedir(), '.pixel-office', 'inbox');
+function queueMessage(sessionId, text) {
+  if (!/^[\w-]{8,64}$/.test(String(sessionId))) return { status: 400, error: 'unexpected session id' };
+  fs.mkdirSync(INBOX, { recursive: true, mode: 0o700 });
+  try { for (const f of fs.readdirSync(INBOX)) { const p = path.join(INBOX, f); if (Date.now() - fs.statSync(p).mtimeMs > 6 * 3600e3) fs.unlinkSync(p); } } catch { /* nothing stale */ }
+  const file = path.join(INBOX, sessionId + '.json'); let cur = { messages: [] };
+  try { const j = JSON.parse(fs.readFileSync(file, 'utf8')); if (j && Array.isArray(j.messages)) cur = j; } catch { /* first message */ }
+  if (cur.messages.length >= 5) return { status: 409, error: 'five messages are already waiting for this session' };
+  cur.messages.push({ text, at: Date.now() }); const tmp = file + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(cur), { mode: 0o600 }); fs.renameSync(tmp, file);
+  return { ok: true, queued: true, waiting: cur.messages.length };
+}
+const queuedFor = sessionId => { try { return JSON.parse(fs.readFileSync(path.join(INBOX, sessionId + '.json'), 'utf8')).messages.length; } catch { return 0; } };
+
+/* ---------- subscription usage, as last reported to the status line tap ---------- */
+function usage() {
+  if (!usageInstalled()) return { installed: false };
+  try { const u = JSON.parse(fs.readFileSync(path.join(os.homedir(), '.pixel-office', 'usage.json'), 'utf8')), now = Date.now() / 1000, live = w => w && (!w.resetsAt || w.resetsAt > now) ? w : null;
+    return { installed: true, at: u.at, five: live(u.five), week: live(u.week) }; } catch { return { installed: true, at: 0, five: null, week: null }; }
 }
 
 /* ---------- chat with an observed session: continue it with `claude -p --resume` (your subscription) ---------- */
@@ -282,7 +329,10 @@ function chatSend(b) {
   if (!m.cwd || !isDirSync(m.cwd)) return { status: 400, error: 'the session folder no longer exists' };
   let c = chats.get(id); if (!c) chats.set(id, c = { proc: null, allowed: new Set() });
   if (c.proc) return { status: 409, error: 'a message is already running for this session' };
-  if (m.live && m.status !== 'idle') return { status: 409, error: `this session is ${m.status} in Claude. Wait until it is idle.` };
+  if (m.live && m.status !== 'idle') {                                    // busy: hand it to the inbox hook if that is installed
+    if (!inboxInstalled()) return { status: 409, error: `this session is ${m.status} in Claude. Wait until it is idle, or run "node install-hook.js --inbox" to message busy sessions.` };
+    return queueMessage(m.sessionId, text);
+  }
   if (m.live && !b.ack) return { status: 409, needsAck: true, error: 'This session is open in Claude. Your message continues the same conversation in the background; the Claude window may not refresh until you reopen it.' };
   chatRun(id, m, text, c); return { ok: true };
 }
@@ -353,6 +403,14 @@ function pollOffice() {
 }
 setInterval(pollOffice, 1000); pollOffice();
 
+/* every project folder the office has seen: open or sleeping sessions now, plus lands earned earlier (only folders that still exist) */
+function knownProjects() {
+  const by = new Map();
+  for (const x of office.sessions || []) if (x.root && x.provider !== 'grokbot') { const p = by.get(x.root) || { root: x.root, name: x.project, sessions: 0, live: 0 }; p.sessions++; if (!x.sleeping) p.live++; by.set(x.root, p); }
+  for (const [root, l] of Object.entries(rpg.s.lands || {})) if (!by.has(root) && path.isAbsolute(root)) by.set(root, { root, name: l.name, sessions: 0, live: 0 });
+  return [...by.values()].filter(p => isDirSync(p.root)).sort((a, b) => b.live - a.live || a.name.localeCompare(b.name));
+}
+
 /* ---------- HTTP ---------- */
 const allowedHosts = new Set([`localhost:${PORT}`, `127.0.0.1:${PORT}`, `[::1]:${PORT}`]);
 function readJSON(req) {
@@ -378,10 +436,13 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, { ok: true, loggedIn: await checkAuth(), budget: TOKEN_BUDGET, bin: CLAUDE, observer: { sessions: office.sessions.length }, hookInstalled: hookInstalled(), version: VERSION, service: !!process.env.PIXEL_OFFICE_SERVICE });
   }
   if (req.method === 'GET' && url.pathname === '/api/stats') return send(res, 200, stats.publicState());
+  if (req.method === 'GET' && url.pathname === '/api/prompts') return send(res, 200, launch.prompts());
+  if (req.method === 'GET' && url.pathname === '/api/usage') return send(res, 200, usage());
+  if (req.method === 'GET' && url.pathname === '/api/projects') return send(res, 200, { projects: knownProjects(), inbox: inboxInstalled(), tools: launch.tools(), terminal: launch.terminalName() || 'your terminal' });
   if (req.method === 'GET' && url.pathname === '/api/setup') {
     const providers = {}; for (const x of office.sessions) providers[x.provider || 'claude'] = (providers[x.provider || 'claude'] || 0) + 1;
     const rs = await Promise.race([repos.status().catch(() => null), new Promise(r => setTimeout(() => r(null), 4000))]);
-    return send(res, 200, { version: VERSION, node: process.version, platform: process.platform, port: PORT, uptime: Math.round((Date.now() - STARTED) / 1000), loggedIn: await checkAuth(), hookInstalled: hookInstalled(),
+    return send(res, 200, { version: VERSION, node: process.version, platform: process.platform, port: PORT, uptime: Math.round((Date.now() - STARTED) / 1000), loggedIn: await checkAuth(), hookInstalled: hookInstalled(), inboxInstalled: inboxInstalled(), usageInstalled: usageInstalled(),
       sessions: office.sessions.length, providers, brain: !!brain.status().configured, github: !!(rs && rs.github && rs.github.connected), gitlab: !!(rs && rs.gitlab && rs.gitlab.connected),
       service: { installed: service.installed(), managed: !!process.env.PIXEL_OFFICE_SERVICE, notify: NOTIFY }, clients: clients.size });
   }
@@ -407,7 +468,7 @@ const server = http.createServer(async (req, res) => {
   }
   if (req.method === 'GET' && url.pathname === '/api/chat/messages') {
     const id = url.searchParams.get('id') || '', m = observer.lookup(id), c = chats.get(id); let msgs = observer.messages(id); if (!msgs && m && m.provider === 'grokbot') msgs = [];
-    return msgs ? send(res, 200, { messages: msgs, running: !!(c && c.proc), live: !!(m && m.live), status: m && m.status, provider: (m && m.provider) || 'claude', canChat: !m || !m.provider || m.provider === 'claude' }) : send(res, 404, { error: 'no transcript for that session' });
+    return msgs ? send(res, 200, { messages: msgs, running: !!(c && c.proc), live: !!(m && m.live), status: m && m.status, inbox: inboxInstalled(), queued: m && m.sessionId ? queuedFor(m.sessionId) : 0, provider: (m && m.provider) || 'claude', canChat: !m || !m.provider || m.provider === 'claude' }) : send(res, 404, { error: 'no transcript for that session' });
   }
   const hw = req.method === 'GET' && /^\/api\/hook\/permission\/([\w-]+)\/wait$/.exec(url.pathname);
   if (hw) return waitPerm(hw[1], req, res);
@@ -448,6 +509,9 @@ const server = http.createServer(async (req, res) => {
     else if (url.pathname === '/api/perm/decide') r = decidePerm(body);
     else if (url.pathname === '/api/brain/vault') r = brain.setVault(body.path);
     else if (url.pathname === '/api/rpg/reset') { if (body.confirm !== true) r = { status: 400, error: 'confirm required' }; else { rpg.reset(); emit({ type: 'rpg', state: rpg.publicState() }); r = { ok: true }; } }
+    else if (url.pathname === '/api/prompts') r = body.reset === true ? launch.resetPrompts() : launch.setPrompts(body.prompts);
+    else if (url.pathname === '/api/session/start') { try { r = await launch.startSession(body, new Set(knownProjects().map(p => p.root))); } catch (e) { r = { status: 500, error: String(e.message || e).slice(0, 200) }; } }
+    else if (url.pathname === '/api/session/resume') { try { r = await launch.resumeSession(observer.lookup(String(body.id || ''))); } catch (e) { r = { status: 500, error: String(e.message || e).slice(0, 200) }; } }
     else if (url.pathname === '/api/chat/send') r = chatSend(body);
     else if (url.pathname === '/api/chat/cancel') r = chatCancel(body.id);
     else r = { status: 404, error: 'not found' };
