@@ -23,11 +23,15 @@ Progress is saved on your computer only (`~/.pixel-office/rpg.json`), never in t
 
 Levels follow `xp = scale × (level − 1)²` (company 60, land 40, character 40): level 2 at 60 XP, 5 at 960, 10 at 4,860, 15 at 11,760. A busy day of real work is a few hundred XP, so level 5 takes days and level 10 weeks. All the numbers live in `ui/rpg-core.js`.
 
-**Work plants things.** Every 5 *work units* (a tool call is 1, a finished turn is 3) on a project plants one new crop (Farm) or starts one new module (Space) on that project's land. After 15 minutes it is ripe; a few minutes later it is harvested (Farm) or shipped by cargo shuttle (Space), which pays coins and XP and frees the plot for the next one. A land's level caps how many plots can be growing at once (6 + 3 per level, up to 28).
+**Work plants things, and they stay.** Every 5 *work units* (a tool call is 1, a finished turn is 3) on a project do two things on that project's land: the oldest ripe plot is harvested (coins and XP) and regrows in the same place, possibly as a better kind; and while the land has room, one more plot is opened. Nothing is ever removed, so a land always shows everything it has earned. A plot takes 15 minutes to ripen and then waits for the next piece of work. A land's level decides how many plots it can hold (6 + 3 per level, up to 28), and every project starts with 3 so no land is bare.
+
+The same plots are drawn differently in each skin: **crops** on the Farm, **modules** in Space, and **furnishings** in the Office (a delivery box that is unpacked, assembled and switched on: filing cabinet, floor lamp, whiteboard, server rack, vending machine, arcade cabinet, aquarium, golden trophy). The Office shows up to 16 per room.
+
+Saves from before this rule lost a plot at every harvest; on first start they get those plots back.
 
 ## Perks by skin (company level)
 
-**Office**: L2 extra plants along the walls · L3 coffee machine in every room · L5 neon sign over the hub · L6 an office cat wanders the hallways · L8 gold trim on every desk · L10 party lights over the hallways.
+**Office**: L1 filing cabinets · L2 floor lamps and extra plants along the walls · L3 coffee machine in every room · L4 whiteboards · L5 server racks and a neon sign over the hub · L6 vending machines and an office cat · L7 arcade cabinets · L8 aquariums and gold trim on every desk · L10 golden trophies and party lights. Characters: L4 desk pennant · L6 glow ring while working · L8 gold nameplate and pennant · L10 aura.
 
 **Farm**: L1 wheat · L2 carrots · L3 well + scarecrow · L4 corn + chickens · L5 windmill + tomatoes · L6 pumpkins + barn · L7 greenhouse (glows at night) + sunflowers · L8 beehives (bees fly) + strawberries · L10 golden apples + fireflies.
 

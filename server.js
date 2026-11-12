@@ -23,7 +23,14 @@ const { createObserver, mask } = require('./observer');
 const brain = require('./brain');
 const { Rpg } = require('./rpg');
 const repos = require('./repos');
+const { Stats } = require('./stats');
+const service = require('./service');
 const rpg = new Rpg();
+const stats = new Stats();
+const VERSION = (() => { try { return require('./package.json').version; } catch { return '0'; } })();
+const STARTED = Date.now();
+/* background service: keep the log file small (launchd / systemd append to it forever) */
+if (process.env.PIXEL_OFFICE_LOG) { try { if (fs.statSync(process.env.PIXEL_OFFICE_LOG).size > 2e6) fs.truncateSync(process.env.PIXEL_OFFICE_LOG, 0); } catch { /* no log yet */ } }
 
 const PORT = Number(process.env.PORT) || 8787;
 const HOST = '127.0.0.1';
@@ -243,7 +250,7 @@ function decidePerm(b) {
   const sug = Number.isInteger(b.suggestion) ? p.suggestions[b.suggestion] : undefined;
   p.result = { behavior, ...(behavior === 'allow' && sug ? { updatedPermissions: [sug] } : {}), ...(behavior === 'deny' && b.message ? { message: clip(oneLine(b.message), 500) } : {}) };
   p.status = 'decided'; permDirty = true;
-  { const sess = (office.sessions || []).find(x => x.sessionId === p.sessionId); const evs = rpg.approval(sess && sess.root); emit({ type: 'rpg', state: rpg.publicState() }); evs.forEach(e => emit({ type: 'rpg_event', ...e })); }
+  { const sess = (office.sessions || []).find(x => x.sessionId === p.sessionId); stats.approval(sess && sess.project, Date.now() - p.created); const evs = rpg.approval(sess && sess.root); emit({ type: 'rpg', state: rpg.publicState() }); evs.forEach(e => emit({ type: 'rpg_event', ...e })); }
   if (p.chat) {
     const { id, tools, m } = p.chat, c = chats.get(id);
     if (behavior === 'allow' && c && !c.proc) { tools.forEach(t => c.allowed.add(t)); chatRun(id, m, `Permission granted for: ${tools.join(', ')}. Continue.`, c); }
@@ -313,11 +320,33 @@ function chatRun(id, m, prompt, c) {
 
 function chatCancel(id) { const c = chats.get(String(id)); if (c && c.proc) { const p = c.proc; c.proc = null; p.kill('SIGTERM'); emit({ type: 'chat', id: String(id), running: false, error: 'cancelled' }); } return { ok: true }; }
 
+/* ---------- optional desktop notifications (PIXEL_OFFICE_NOTIFY=1): only when no office tab is open, e.g. when running as a service ---------- */
+const NOTIFY = process.env.PIXEL_OFFICE_NOTIFY === '1', noteSeen = new Map();
+function nativeNotify(title, body) {
+  const t = clip(oneLine(title), 60), b = clip(oneLine(body), 120), done = () => {};
+  if (process.platform === 'darwin') { const q = x => '"' + x.replace(/[\\"]/g, ' ') + '"'; execFile('osascript', ['-e', `display notification ${q(b)} with title ${q(t)}`], { timeout: 5000 }, done); }
+  else if (process.platform === 'linux') execFile('notify-send', ['-a', 'Pixel Office', t, b], { timeout: 5000 }, done);
+}
+function watchForAttention(o) {
+  if (!NOTIFY) return; const now = Date.now(), present = new Set();
+  for (const it of o.sessions || []) {
+    present.add(it.id); const p = noteSeen.get(it.id) || { status: it.status, workSince: 0, at: 0, fresh: true };
+    if (it.status === 'working' && p.status !== 'working') p.workSince = now;
+    if (!p.fresh && !clients.size && now - p.at > 60000) {
+      if (it.status === 'waiting' && p.status !== 'waiting') { nativeNotify(`${it.project} needs you`, `${it.name || 'A session'} is waiting${it.waitingFor ? ': ' + it.waitingFor : ''} — http://localhost:${PORT}`); p.at = now; }
+      else if (p.status === 'working' && it.status === 'idle' && p.workSince && now - p.workSince > 120000) { nativeNotify(`${it.project} finished`, `${it.name || 'A session'} is done after ${Math.round((now - p.workSince) / 60000)} min`); p.at = now; }
+    }
+    p.status = it.status; p.fresh = false; noteSeen.set(it.id, p);
+  }
+  for (const id of [...noteSeen.keys()]) if (!present.has(id)) noteSeen.delete(id);
+}
+
 /* ---------- observing your real Claude Code sessions (read-only) ---------- */
 function pollOffice() {
   sweepPerms();
   try { office = { ...observer.read(), perms: permsList() }; } catch (e) { console.error('observer:', e.message); return; }
   const evs = rpg.tick(office, Date.now());
+  stats.tick(office, Date.now()); watchForAttention(office);
   if (evs.length) { emit({ type: 'rpg', state: rpg.publicState() }); for (const e of evs) emit({ type: 'rpg_event', ...e }); }
   const key = JSON.stringify(office);
   if (key !== officeKey || permDirty) { officeKey = key; permDirty = false; emit({ type: 'office', ...office }); }
@@ -346,7 +375,15 @@ const server = http.createServer(async (req, res) => {
     });
   }
   if (req.method === 'GET' && url.pathname === '/api/health') {
-    return send(res, 200, { ok: true, loggedIn: await checkAuth(), budget: TOKEN_BUDGET, bin: CLAUDE, observer: { sessions: office.sessions.length }, hookInstalled: hookInstalled() });
+    return send(res, 200, { ok: true, loggedIn: await checkAuth(), budget: TOKEN_BUDGET, bin: CLAUDE, observer: { sessions: office.sessions.length }, hookInstalled: hookInstalled(), version: VERSION, service: !!process.env.PIXEL_OFFICE_SERVICE });
+  }
+  if (req.method === 'GET' && url.pathname === '/api/stats') return send(res, 200, stats.publicState());
+  if (req.method === 'GET' && url.pathname === '/api/setup') {
+    const providers = {}; for (const x of office.sessions) providers[x.provider || 'claude'] = (providers[x.provider || 'claude'] || 0) + 1;
+    const rs = await Promise.race([repos.status().catch(() => null), new Promise(r => setTimeout(() => r(null), 4000))]);
+    return send(res, 200, { version: VERSION, node: process.version, platform: process.platform, port: PORT, uptime: Math.round((Date.now() - STARTED) / 1000), loggedIn: await checkAuth(), hookInstalled: hookInstalled(),
+      sessions: office.sessions.length, providers, brain: !!brain.status().configured, github: !!(rs && rs.github && rs.github.connected), gitlab: !!(rs && rs.gitlab && rs.gitlab.connected),
+      service: { installed: service.installed(), managed: !!process.env.PIXEL_OFFICE_SERVICE, notify: NOTIFY }, clients: clients.size });
   }
   if (req.method === 'GET' && url.pathname.startsWith('/api/brain/')) {
     const q = k => url.searchParams.get(k) || '';
@@ -419,12 +456,18 @@ const server = http.createServer(async (req, res) => {
   send(res, 404, { error: 'not found' });
 });
 
+server.on('error', e => {
+  if (e.code === 'EADDRINUSE') console.error(`\n  Port ${PORT} is already in use: Pixel Office is probably running already${service.installed() ? ' as a background service' : ''}.\n  Just open http://localhost:${PORT}  —  or stop it first${service.installed() ? ' with: node service.js stop' : ''}, or pick another port: PORT=8788 node server.js\n`);
+  else console.error(e.message);
+  process.exit(1);
+});
 server.listen(PORT, HOST, async () => {
   const ok = await checkAuth();
   console.log(`\n  PIXEL OFFICE bridge  →  http://localhost:${PORT}`);
   console.log(`  claude binary        →  ${CLAUDE}`);
   console.log(`  workspace            →  ${WORKSPACE}`);
+  console.log(`  mode                 →  ${process.env.PIXEL_OFFICE_SERVICE ? 'background service' : 'terminal (run "node service.js install" to keep it running without one)'}`);
   console.log(`  claude login         →  ${ok === true ? 'logged in (subscription)' : ok === false ? 'NOT LOGGED IN — run: claude auth login' : 'could not determine (is "claude" installed?)'}\n`);
 });
-const stop = () => { for (const a of agents.values()) if (a.proc) a.proc.kill('SIGTERM'); rpg.save(); process.exit(0); };
+const stop = () => { for (const a of agents.values()) if (a.proc) a.proc.kill('SIGTERM'); rpg.save(); stats.save(); process.exit(0); };
 process.on('SIGINT', stop); process.on('SIGTERM', stop);
