@@ -28,7 +28,7 @@
     let list = data.repos.filter(r => (forks || !r.fork) && (arch || !r.archived) && (!onlyOffice || r.local.length) && (!f || (r.fullName + ' ' + r.description + ' ' + r.language).toLowerCase().includes(f)));
     list.sort((a, b) => sort === 'name' ? a.name.localeCompare(b.name) : sort === 'stars' ? b.stars - a.stars : Date.parse(b.pushedAt) - Date.parse(a.pushedAt));
     body.innerHTML = list.length ? list.map(r => `<div class="r-card" data-r="${E(r.fullName)}">
-      <div class="r-top"><b><a href="${E(r.url)}" target="_blank" rel="noopener noreferrer">${E(r.fullName)}</a></b>${r.private ? '<span class="r-badge priv">PRIVATE</span>' : ''}${r.fork ? '<span class="r-badge">FORK</span>' : ''}${r.archived ? '<span class="r-badge">ARCHIVED</span>' : ''}${r.local.map(l => `<span class="r-badge off" data-root="${E(l.root)}" title="Open ${E(l.project)} in the office">IN OFFICE · ${E(l.project)}</span>`).join('')}</div>
+      <div class="r-top"><b><a href="${E(r.url)}" target="_blank" rel="noopener noreferrer">${E(r.fullName)}</a></b>${r.private ? '<span class="r-badge priv">PRIVATE</span>' : ''}${r.fork ? '<span class="r-badge">FORK</span>' : ''}${r.archived ? '<span class="r-badge">ARCHIVED</span>' : ''}${r.local.map(l => `<span class="r-badge off" data-root="${E(l.root)}" title="Open ${E(l.project)} in the office">IN OFFICE · ${E(l.project)}</span>`).join('')}${r.local.length ? `<span class="r-badge off" data-start="${E(r.local[0].root)}" title="Open a terminal in ${E(r.local[0].project)} and start a new session">＋ SESSION</span>` : ''}</div>
       ${r.description ? `<div class="r-desc">${E(r.description)}</div>` : ''}
       <div class="r-meta">${r.language ? `<span><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${LANG[r.language] || '#8a86b8'};margin-right:4px"></i>${E(r.language)}</span>` : ''}<span>★ ${r.stars}</span>${r.defaultBranch ? `<span>⎇ ${E(r.defaultBranch)}</span>` : ''}<span>pushed ${ago(r.pushedAt)}</span><span class="sp"></span><button data-det="${E(r.fullName)}">${open.has(r.fullName) ? '▾ hide details' : '▸ commits & PRs'}</button></div>
       <div class="r-det-slot" data-slot="${E(r.fullName)}"></div></div>`).join('') : '<div class="r-empty">No repositories match.</div>';
@@ -43,6 +43,7 @@
   }
 
   q('#rBody').addEventListener('click', e => {
+    const ns = e.target.closest('[data-start]'); if (ns) { if (window.POLAUNCH) POLAUNCH.startIn(ns.dataset.start); return; }
     const d = e.target.closest('[data-det]'), o = e.target.closest('[data-root]');
     if (d) { const n = d.dataset.det; if (open.has(n)) open.delete(n); else open.add(n); render(); }
     if (o) {                                              // jump to that project's room in the office

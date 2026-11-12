@@ -39,6 +39,7 @@ export function output(res) {
   if (res.behavior === 'allow') {
     const decision = { behavior: 'allow' };
     if (res.updatedPermissions) decision.updatedPermissions = res.updatedPermissions;
+    if (res.updatedInput && typeof res.updatedInput === 'object') decision.updatedInput = res.updatedInput;       // answers to an AskUserQuestion
     return { hookSpecificOutput: { hookEventName: 'PermissionRequest', decision } };
   }
   if (res.behavior === 'deny') {
@@ -51,10 +52,12 @@ export function output(res) {
 async function main() {
   const raw = await readStdin(); if (!raw) return;
   let input; try { input = JSON.parse(raw); } catch { return; }
-  if (!input || !input.tool_name || input.tool_name === 'AskUserQuestion') return;     // questions are answered in the terminal
+  if (!input || !input.tool_name) return;
+  const isQuestion = input.tool_name === 'AskUserQuestion';                              // answered in the office as buttons; the terminal prompt still works
+  if (isQuestion && (process.env.PIXEL_OFFICE_QUESTIONS === '0' || !input.tool_input || !Array.isArray(input.tool_input.questions))) return;
   const reg = await call('POST', '/api/hook/permission', {
     session_id: input.session_id, agent_id: input.agent_id, cwd: input.cwd, tool_name: input.tool_name,
-    tool_input: trim(input.tool_input ?? {}), permission_suggestions: Array.isArray(input.permission_suggestions) ? input.permission_suggestions : []
+    tool_input: isQuestion ? input.tool_input : trim(input.tool_input ?? {}), permission_suggestions: Array.isArray(input.permission_suggestions) ? input.permission_suggestions : []
   }, 2000);
   if (!reg || !reg.ok) return;                                                           // bridge down / no page open → terminal decides
   const deadline = Date.now() + TIMEOUT_S * 1000;

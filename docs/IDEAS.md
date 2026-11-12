@@ -4,8 +4,9 @@ A brainstorm, grouped by what it would do for the person using it. Each idea say
 (**S** a day or less, **M** a few days, **L** a week or more). Nothing here is promised; it is a menu.
 
 Already built: live office for Claude Code / Codex / Gemini / Grok, approvals and chat from the office, Second Brain,
-Repos, three skins with weather and an RPG layer, colony map, sector alerts, focus mode, Insights, Guide with tour,
-background service, notifications.
+Repos, three skins with weather and an RPG layer (permanent plots, Office furnishings), colony map, sector alerts, focus
+mode, Insights, Guide with tour, background service, notifications, quick prompts, starting a session from the office, answering questions and denying with a reason, messaging a busy
+session, subscription usage bars, jump-to-next-waiting keys, reopening a sleeping session in a terminal.
 
 ## 1. A daily cockpit
 
@@ -13,15 +14,27 @@ background service, notifications.
 |---|---|---|
 | **Morning briefing** | One button: for every project, read the tail of yesterday's transcripts and ask Claude (your subscription) for "what was done, where it stopped, what is waiting on you". Shown as cards and optionally saved as a daily note in the Second Brain. | M |
 | **Session handoff notes** | When a session ends, write a short summary note (done / open questions / next step) into a `Sessions/` folder of the vault, linked to the project note. Your notes fill themselves. | M |
-| **Quick prompts** | A small library of saved prompts per project ("run the tests", "continue", "commit with a good message"). One click from a character's card, or broadcast one prompt to several sessions. | S |
-| **Start a session from the office** | Pick a project (or a repo from the Repos tab) and open a new terminal tab running `claude` there. | S |
 | **Approval rules** | "Always allow read-only tools in this project" set from the office, written to that project's Claude settings, with every automatic approval logged. Plus "approve all 3 waiting" in one click. | M |
 | **Git on the room door** | Each room shows branch, uncommitted files, ahead/behind, open PR and CI status. A failing CI or a review request becomes a card in the Decision Console. | M |
-| **Usage and limits** | Estimate how much of the current subscription window is used and warn before a limit, using the token counts already observed. | M |
 | **Search everything** | One search box over all transcripts and the vault: "where did I fix the login redirect?" | M |
 | **Day replay** | Scrub a timeline of the day and watch the office replay who worked on what. Built on the Insights data. | L |
 | **Phone approvals** | A tiny mobile page for approvals only, reachable over Tailscale or the local network, opt-in and protected by a pairing code. | L |
 | **Menu-bar companion** | A menu-bar icon with the number of sessions waiting and a dropdown to approve. | L |
+
+## 1b. Borrowed from similar projects
+
+From a comparison with [habblaud](https://github.com/marmottajr/habblaud) and
+[bot-crossing](https://github.com/Station-Sciences/bot-crossing) (both MIT). Ideas only; no code or art is copied.
+
+| Idea | Seen in | How it would work here | Size |
+|---|---|---|---|
+| **"Waiting on a shell" state** | habblaud | A session blocked on a long build or test run gets its own look (hourglass at the desk, cloud over the crop) with a timer and a pass or fail result. | M |
+| **Open the session in its own app** | bot-crossing | Sleeping sessions can already be reopened in a terminal. Still open: opening the conversation in the Claude or Codex desktop app, and focusing the terminal of a session that is running. | S |
+| **Events read from transcripts** | habblaud | Detect push, PR opened or merged, red CI and releases from the commands sessions already run, with no GitHub token. Feeds "Real events, visible" below. | M |
+| **Sectors that stay put** | bot-crossing | A project keeps its place on the colony map between runs, can be dragged, and folds away after a few quiet days. | M |
+| **Bigger projects, bigger sectors** | bot-crossing | A project with many sessions gets more tiles; building height follows how much work was done. | M |
+| **More tools** | bot-crossing | Readers for OpenCode, Cursor, Antigravity and others, next to Claude Code, Codex, Gemini and Grok. | M each |
+| **Session history and search** | habblaud | Browse closed sessions per project and search their text. Overlaps "Search everything" above. | M |
 
 ## 2. The world
 
@@ -71,8 +84,8 @@ background service, notifications.
 
 If the goal is "this helps me every day", the order that pays back fastest:
 
-1. **Quick prompts** and **start a session from the office**: the office stops being read-mostly.
-2. **Git on the room door**: you see what needs a commit or a review without asking.
+1. **Git on the room door** with **events read from transcripts**: what needs a commit, a review or a fix, without asking.
+2. **"Waiting on a shell" state**: tells a long build apart from a session that is stuck.
 3. **Morning briefing** and **handoff notes**: connects the office to the Second Brain.
 4. **Real events, visible**: the cheapest way to make the world feel alive.
-5. **One continuous world**: the big visual step, best done after the above so it has more to show.
+5. **Sectors that stay put**, then **one continuous world**: the big visual step.

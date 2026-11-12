@@ -43,7 +43,7 @@ function options(argv) {
 function env(o) {
   const e = { PATH: process.env.PATH || '/usr/local/bin:/usr/bin:/bin', PORT: String(o.port), PIXEL_OFFICE_SERVICE: '1', PIXEL_OFFICE_LOG: LOG };
   if (o.notify) e.PIXEL_OFFICE_NOTIFY = '1';
-  for (const k of ['CLAUDE_BIN', 'CLAUDE_CONFIG_DIR', 'CODEX_HOME', 'GEMINI_DIR', 'GROK_HOME', 'GROKBOT_DIR', 'GITLAB_HOST', 'TOKEN_BUDGET']) if (process.env[k]) e[k] = process.env[k];
+  for (const k of ['PIXEL_OFFICE_TERMINAL', 'CLAUDE_BIN', 'CLAUDE_CONFIG_DIR', 'CODEX_HOME', 'GEMINI_DIR', 'GROK_HOME', 'GROKBOT_DIR', 'GITLAB_HOST', 'TOKEN_BUDGET']) if (process.env[k]) e[k] = process.env[k];
   return e;                                    // tokens (GITHUB_TOKEN, GITLAB_TOKEN) are deliberately NOT copied into the service file
 }
 

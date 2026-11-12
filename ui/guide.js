@@ -34,12 +34,22 @@
       <li><b>− FIT +</b>: zoom. Hover a character for details, click it for its full card.</li></ul>`],
     ['approve', 'Approving from the office', () => `
       <p>When Claude Code asks "Allow this tool?", the question can show up as a card in the <b>Decision Console</b>. Approve, deny, or "always allow" from there. The prompt in the terminal keeps working too: whichever you answer first wins.</p>
+      <p>Type a line in the box before pressing Deny to tell the session what to do instead.</p>
+      <p><b>Questions too.</b> When a session asks you a multiple-choice question, the card shows every option as a button, plus a box for your own answer. "Answer in terminal" leaves it there.</p>
       <p>This is opt-in. Install the hook once:</p>${cmd('node install-hook.js')}
-      <p>Remove it any time:</p>${cmd('node install-hook.js --uninstall')}
+      <h4>Two optional extras</h4>
+      <p><b>Message a busy session.</b> Chat and quick prompts then reach a session at its next step, even while it is working:</p>${cmd('node install-hook.js --inbox')}
+      <p><b>Subscription usage bars.</b> Shows your 5-hour and weekly limits in the header. It wraps your status line command; yours keeps working:</p>${cmd('node install-hook.js --usage')}
+      <p>See what is on, or remove everything Pixel Office added (your status line is restored):</p>${cmd('node install-hook.js --status')}${cmd('node install-hook.js --uninstall')}
       <p>Safety: if no office page is open, or the bridge is not running, the hook steps aside at once and the terminal asks as usual. It can never approve anything by itself.</p>`],
     ['chat', 'Chatting with a session', () => `
       <p>Click a character, then use the chat box in its card. You see the latest messages of that session and can send a prompt without switching windows. The reply is added to the same conversation, using your Claude subscription through the <code>claude</code> command (no API key).</p>
       <p>If the session is also open in a terminal, you are asked to confirm first, because two writers in one conversation can be confusing. Sessions from other tools (Codex, Gemini, Grok) are read-only here.</p>`],
+    ['prompts', 'Quick prompts and new sessions', () => `
+      <p><b>Quick prompts</b> are saved prompts that show as buttons above the chat box in every session card: Continue, Status, Run tests, Review changes, Commit, Explain. One click sends it. <kbd>Alt</kbd>-click puts it in the box so you can edit it first.</p>
+      <p><b>⚡ PROMPT</b> in the top bar sends one prompt to several sessions at once (tick the ones you want, or ALL IDLE). <b>⚙ EDIT</b> opens the library: add your own, and choose whether a prompt shows in every project or only in one.</p>
+      <p><b>＋ SESSION</b> starts a new session without leaving the office. Pick a project, the tool, and an optional first prompt; a terminal window opens in that folder with the tool running, and the new character walks in a few seconds later. Projects appear in the list once a session has been seen there. Repos that are in the office have the same button on the Repos tab.</p>
+      <p>To use another terminal on macOS, start the bridge with <code>PIXEL_OFFICE_TERMINAL=iTerm</code> (or run <code>PIXEL_OFFICE_TERMINAL=iTerm node service.js install</code>).</p>`],
     ['brain', 'Second Brain', () => `
       <p>${go('brain', '◈ OPEN SECOND BRAIN')} &nbsp; Point it at any folder of markdown notes: an Obsidian vault, a docs folder, a graphify output. You get a file tree, search, rendered notes with working <code>[[wikilinks]]</code>, backlinks, and a link graph. If the folder has <code>graphify-out/graph.json</code>, a second graph tab appears.</p>
       <p>It only reads. The folder you pick is remembered in <code>~/.pixel-office/config.json</code> on this computer, never in the project.</p>`],
@@ -79,7 +89,8 @@
       <li>Your settings, progress and statistics live in <code>~/.pixel-office</code>, outside the project folder, so they can never be committed by accident.</li>
       <li>Nothing can be approved without you clicking a button.</li></ul>`],
     ['keys', 'Shortcuts', () => `
-      <ul><li><kbd>M</kbd> colony map &nbsp; <kbd>F</kbd> focus mode &nbsp; <kbd>Esc</kbd> close a card or the map</li>
+      <ul><li><kbd>N</kbd> next session waiting on you &nbsp; <kbd>B</kbd> the busiest session</li>
+      <li><kbd>M</kbd> colony map &nbsp; <kbd>F</kbd> focus mode &nbsp; <kbd>Esc</kbd> close a card or the map</li>
       <li><kbd>/</kbd> jump to the command line (spawn mode)</li>
       <li><code>?preview=10</code> at the end of the address shows the world at level 10</li>
       <li><code>?mode=spawn</code> turns on the original mode where the office starts its own agents</li></ul>`],
@@ -112,7 +123,9 @@
       row('ok', `Bridge running · v${E(s.version)}`, `Port ${s.port}, up ${up}, Node ${E(s.node)}, ${s.service.managed ? 'as a background service' : 'from a terminal'}.`),
       s.loggedIn === true ? row('ok', 'Claude Code is signed in', 'Chat and spawn mode use your subscription.') : row('no', 'Claude Code is not signed in', 'Watching sessions still works. To chat from the office, run <code>claude</code> in a terminal and sign in.'),
       s.sessions ? row('ok', `${s.sessions} session${s.sessions > 1 ? 's' : ''} found`, E(prov) + '.', go('office', 'SEE THEM')) : row('opt', 'No sessions right now', 'Start <code>claude</code> (or Codex, Gemini, Grok) in any project and it walks in.'),
-      s.hookInstalled ? row('ok', 'Approvals from the office are on', 'Permission prompts appear in the Decision Console. The terminal prompt still works.') : row('no', 'Approvals from the office are off', 'Optional. Run <code>node install-hook.js</code>, then restart your sessions.'),
+      s.hookInstalled ? row('ok', 'Approvals and questions from the office are on', 'Permission prompts and multiple-choice questions appear in the Decision Console. The terminal prompt still works.') : row('no', 'Approvals from the office are off', 'Optional. Run <code>node install-hook.js</code>, then restart your sessions.'),
+      s.inboxInstalled ? row('ok', 'Messaging busy sessions is on', 'Chat and quick prompts reach a session at its next step, even while it is working.') : row('opt', 'Messaging busy sessions is off', 'Optional. Run <code>node install-hook.js --inbox</code>, then restart your sessions.'),
+      s.usageInstalled ? row('ok', 'Subscription usage bars are on', 'The header shows your 5-hour and weekly limits once a session has been active.') : row('opt', 'Subscription usage bars are off', 'Optional. Run <code>node install-hook.js --usage</code>. It wraps your status line; yours keeps working.'),
       s.service.installed ? row('ok', 'Background service installed', s.service.managed ? 'It starts at login and needs no terminal.' : 'Installed, but this bridge was started by hand.') : row('opt', 'Not running as a background service', 'Optional. <code>node service.js install</code> keeps it running without a terminal.', `<button class="ctl" data-sec="service">HOW</button>`),
       s.service.notify ? row('ok', 'Desktop notifications from the service are on', 'You are told when a session needs you and no office tab is open.') : row('opt', 'Notifications', 'Use the 🔔 button above for browser notifications, or install the service with <code>--notify</code>.'),
       s.brain ? row('ok', 'Second Brain is connected', 'A notes folder is set.', go('brain', 'OPEN')) : row('opt', 'Second Brain is not set', 'Optional. Pick a folder of markdown notes.', go('brain', 'SET UP')),
@@ -129,6 +142,7 @@
     ['#mapBtn', 'Colony map and focus', 'MAP shows every project on one screen. The button next to it hides the side panels so the world fills the window.'],
     ['.console', 'Decision Console', 'Questions from your sessions land here: approve, deny or always allow, without going back to the terminal.'],
     ['.logp', 'Activity log', 'A running log of what every session is doing.'],
+    ['#qpBtn', 'Quick prompts and new sessions', 'PROMPT sends a saved prompt to one or more sessions. SESSION opens a terminal in a project and starts a new one.'],
     ['#lvBtn', 'Levels and perks', 'Real work earns XP. Click here to see progress, the next perks, and to preview any level.'],
     ['#ntfBtn', 'Notifications', 'Turn this on to be told when a session needs you while you are in another window.']
   ];

@@ -131,6 +131,22 @@ button{font:inherit;color:inherit}
 .app.focus{grid-template-areas:"top top" "tabs tabs" "office office" "office office"}.app.focus .console,.app.focus .logp{display:none}
 .app.focus.on-brain{grid-template-areas:"top top" "tabs tabs" "brain brain"}.app.focus.on-repos{grid-template-areas:"top top" "tabs tabs" "repos repos"}.app.focus.on-insights,.app.focus.on-guide{grid-template-areas:"top top" "tabs tabs" "page page"}
 @media (max-width:1100px){.app.on-insights,.app.on-guide{grid-template-areas:"top" "tabs" "page";grid-template-rows:auto auto 82vh}.i-two{grid-template-columns:1fr}.app.on-guide #guide{grid-template-columns:1fr}.g-nav{display:none}.app.focus{grid-template-areas:"top" "tabs" "office"}}
+/* ---------- quick prompts + new session ---------- */
+.qp{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}.qp:empty{display:none}
+.qchip{background:#241e48;border:1px solid #4a3f93;color:var(--ink);padding:2px 9px;font:inherit;font-size:11px;cursor:pointer;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qchip:hover{border-color:var(--amber);background:#2f2760}.qchip.own{border-color:#2c6b49;background:#10261d}.qchip.edit{color:var(--dim);border-style:dashed}
+.dialog.ln{width:min(680px,100%)}.ln-body{padding:14px 16px;display:grid;gap:10px}
+.ln-body h4{margin:4px 0 0;font-size:10.5px;letter-spacing:.1em;color:var(--dim)}.ln-body h4 small{letter-spacing:0;font-weight:400;margin-left:8px}
+.ln-body textarea,.ln-body input:not([type=checkbox]){background:#07050f;border:2px solid var(--line);color:var(--ink);font:inherit;padding:6px 8px;outline:0;width:100%;resize:vertical}
+.ln-body textarea:focus,.ln-body input:focus{border-color:var(--amber)}.ln-body textarea:disabled{opacity:.45}
+.ln-chips{display:flex;gap:5px;flex-wrap:wrap}.ln-note{margin:0;color:var(--dim);font-size:11px;line-height:1.55}.ln-note code{color:#ffd77a}
+.ln-targets{max-height:240px;overflow:auto;border:2px solid var(--line);background:#0f0b26;padding:6px 10px;display:grid;gap:8px}
+.ln-proj b{display:block;font-size:11px;color:#fff;margin-bottom:2px}.ln-proj label{display:flex;gap:7px;align-items:baseline;padding:2px 0;cursor:pointer;font-size:12px}.ln-proj label.off{opacity:.5;cursor:not-allowed}
+.ln-proj small{color:var(--dim)}.ln-proj span{margin-left:auto;font-size:11px}.ln-proj span.ok{color:#7be0a0}.ln-proj span.bad{color:#ff9aa5}
+.ln-foot{display:flex;gap:8px;align-items:center}.ln-foot span{flex:1;color:var(--dim);font-size:11px}.ctl.big{padding:6px 16px;font-size:12px;box-shadow:inset -2px -2px 0 #120e2b,inset 2px 2px 0 #4a3f93,0 0 0 1px var(--amber)}.ctl:disabled{opacity:.45;cursor:not-allowed}
+.ln-rows{display:grid;gap:8px;max-height:52vh;overflow:auto}.ln-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:6px;background:#0f0b26;border:2px solid var(--line);padding:8px}.ln-row textarea{grid-column:1/-1}
+.ln-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.ln-grid label{display:grid;gap:4px;font-size:10.5px;letter-spacing:.1em;color:var(--dim)}.ln-grid select{max-width:none;padding:5px 6px;font-size:12px}
+.ln-path{margin:0;font-size:11px;color:var(--dim);word-break:break-all}
 /* ---------- agent chat ---------- */
 .chat{height:240px;overflow:auto;background:#07050f;border:2px solid var(--line);padding:8px 10px;display:flex;flex-direction:column;gap:6px;font-size:12px}
 .chat .u,.chat .a{max-width:88%;padding:5px 9px;white-space:pre-wrap;word-break:break-word;line-height:1.45}
@@ -349,6 +365,12 @@ button{font:inherit;color:inherit}
 .tl li small{color:var(--dim)}
 .tl .bar{grid-column:1/-1;margin:0}
 .m-log{height:190px;background:#07050f;border:2px solid #302868}
+.qq{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}.qt{margin:0 0 6px;color:#fff;font-size:12px;line-height:1.45}.qt small{color:var(--dim)}.qh{display:inline-block;background:var(--c);color:#120d2c;font-weight:700;font-size:9.5px;letter-spacing:.06em;padding:0 5px;margin-right:6px;vertical-align:1px}
+.qo{display:grid;gap:4px}.qopt{text-align:left;background:#17123a;border:2px solid var(--line);padding:5px 8px;cursor:pointer;font:inherit;color:var(--ink)}.qopt b{display:block;font-size:12px}.qopt small{display:block;color:var(--dim);font-size:10.5px;line-height:1.4;margin-top:1px}
+.qopt:hover{border-color:#6a5acd}.qopt.on{border-color:var(--green);background:#10261d}.qopt.on b::before{content:"✔ ";color:var(--green)}.qother{margin-top:5px}.a:disabled{opacity:.4;cursor:not-allowed}
+.usebars{display:grid;gap:3px;margin-top:5px}.usebars.stale{opacity:.6}.ub{display:grid;grid-template-columns:86px minmax(40px,1fr) 34px auto;gap:8px;align-items:center;font-size:9.5px;letter-spacing:.06em;color:var(--dim)}
+.ub i{display:block;height:7px;background:#2b2554}.ub i b{display:block;height:100%}.ub em{font-style:normal;color:var(--ink);font-weight:700;text-align:right}.ub small{letter-spacing:0;white-space:nowrap}
+.dnote{width:100%;margin-top:8px;background:#07050f;border:2px solid var(--line);color:var(--ink);font:inherit;font-size:11px;padding:4px 7px;outline:0}.dnote:focus{border-color:var(--red)}
 .dec{border-left:5px solid var(--c);padding:2px 0 2px 10px}
 .dec .acts{grid-template-columns:repeat(4,1fr)}
 
@@ -399,6 +421,8 @@ button{font:inherit;color:inherit}
     <button class="mtab" role="tab" data-mt="insights" aria-selected="false">◔ INSIGHTS</button>
     <button class="mtab" role="tab" data-mt="guide" aria-selected="false">? GUIDE</button>
     <span class="mt-sp"></span>
+    <button class="ctl ntf" id="qpBtn" title="Send a saved prompt to one or more sessions">⚡ PROMPT</button>
+    <button class="ctl ntf" id="nsBtn" title="Start a new session in a project (opens a terminal)">＋ SESSION</button>
     <button class="ctl ntf" id="ntfBtn" title="Browser notifications when a session needs you or finishes" aria-pressed="false">🔔 OFF</button>
     <button class="lvbtn" id="lvBtn" title="Progress, perks and how to level up"><b id="lvNum">★ LV 1</b><span class="lvbar"><i id="lvFill"></i></span><small id="lvXp">0 XP</small></button>
   </nav>
@@ -478,6 +502,7 @@ button{font:inherit;color:inherit}
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="modal" id="lnModal" aria-hidden="true"><div class="dialog panel ln" role="dialog" aria-modal="true" aria-labelledby="lnTitle" style="--c:#ffc83d"><div class="m-h"><div><h2 id="lnTitle">Quick prompt</h2><p id="lnSub"></p></div><button class="x" id="lnClose" aria-label="Close" style="margin-left:auto">✕</button></div><div class="ln-body" id="lnBody"></div></div></div>
 <div class="modal" id="progModal" aria-hidden="true"><div class="dialog panel prog" role="dialog" aria-modal="true" aria-label="Progress"><div class="m-h"><div><h2 id="pgTitle">Progress</h2><p id="pgSub"></p></div><button class="x" id="pgClose" aria-label="Close" style="margin-left:auto">✕</button></div><div class="pg-body" id="pgBody"></div></div></div>
 <div class="modal" id="modal" aria-hidden="true">
   <div class="dialog panel" role="dialog" aria-modal="true" aria-labelledby="mTitle" id="dialog">
@@ -492,6 +517,7 @@ button{font:inherit;color:inherit}
       <section class="wide" id="mDecSec" hidden><h4>Awaiting your decision</h4><div id="mDec"></div></section>
       <section class="wide" id="mChatSec" hidden><h4>Conversation <small style="color:var(--dim);font-weight:400" id="mChatHint"></small></h4>
         <div class="chat" id="mChat" aria-live="polite"></div>
+        <div class="qp" id="mQp" aria-label="Quick prompts"></div>
         <div class="chat-in"><textarea id="mChatIn" rows="2" placeholder="Message this session… (Enter to send, Shift+Enter for a new line)" aria-label="Message to this session"></textarea><button class="ctl" id="mChatSend">SEND</button></div>
         <div class="chat-note" id="mChatNote"></div>
       </section>
@@ -831,7 +857,7 @@ function cardHTML(d) {
     <h3>${esc(d.title)}</h3>
     <p class="who"><button class="loc" data-loc="${a.id}" title="Locate on the office floor">◎ ${esc(a.title || a.name)}</button></p>
     <p class="why">${esc(d.detail)}</p>
-    ${d.perm ? `<pre class="fulltxt">${esc(d.full)}</pre><div class="acts" style="grid-template-columns:repeat(${d.sugg ? 3 : 2},1fr)"><button class="a ok" data-act="allow">✔ Allow</button>${d.sugg ? '<button class="a rv" data-act="always" title="Allow and remember the rule Claude Code suggested">★ Always</button>' : ''}<button class="a no" data-act="deny">✖ Deny</button></div>`
+    ${d.questions ? questionHTML(d) : d.perm ? `<pre class="fulltxt">${esc(d.full)}</pre><input class="dnote" data-note maxlength="400" value="${esc(d.note || '')}" placeholder="Optional, sent with Deny: what should it do instead?" aria-label="Reason for denying"><div class="acts" style="grid-template-columns:repeat(${d.sugg ? 3 : 2},1fr)"><button class="a ok" data-act="allow">✔ Allow</button>${d.sugg ? '<button class="a rv" data-act="always" title="Allow and remember the rule Claude Code suggested">★ Always</button>' : ''}<button class="a no" data-act="deny">✖ Deny</button></div>`
       : `<p class="why" style="color:var(--dim)">Answer it in that Claude Code session (install the hook to answer from here).</p>`}</article>`;
   return `<article class="item p${d.prio}${d.held ? ' held' : ''}${d.fresh ? ' fresh' : ''}" data-id="${d.id}" style="--c:${D.color}">
     <div class="i-top"><span class="pr" title="Priority ${d.prio}">P${d.prio}</span><span class="dv">${D.tab.toUpperCase()}</span><span class="tk">#${d.ticket}</span>${d.rev ? `<span class="rv">REV ${d.rev + 1}</span>` : ''}${d.held ? '<span class="hd">HELD</span>' : ''}<span class="age" data-age="${d.id}">${ageStr(d)}</span></div>
@@ -844,6 +870,16 @@ function cardHTML(d) {
       <button class="a rv" data-act="revise">↺ Request Revision</button>
       <button class="a hd" data-act="hold">${d.held ? '▶ Release Hold' : '❚❚ Keep Open'}</button>
     </div></article>`;
+}
+/* a question from a session: every option is a button; "other" takes free text; SEND is enabled once each question has an answer */
+const answerOf = (d, n) => { const a = d.ans[n] || {}, picks = a.picks || []; return a.other && a.other.trim() ? (d.questions[n].multi ? [...picks, a.other.trim()] : a.other.trim()) : d.questions[n].multi ? picks : picks[0] || ''; };
+const answered = d => d.questions.every((q, n) => { const v = answerOf(d, n); return Array.isArray(v) ? v.length : !!v; });
+function questionHTML(d) {
+  return d.questions.map((q, n) => { const a = d.ans[n] || {}, picks = a.picks || [];
+    return `<div class="qq"><p class="qt">${q.header ? `<span class="qh">${esc(q.header)}</span>` : ''}${esc(q.question)}${q.multi ? ' <small>(pick any)</small>' : ''}</p>
+      <div class="qo">${q.options.map((o, i) => `<button class="qopt${picks.includes(o.label) ? ' on' : ''}" data-q="${n}" data-opt="${i}" title="${esc(o.description)}"><b>${esc(o.label)}</b>${o.description ? `<small>${esc(o.description)}</small>` : ''}</button>`).join('')}</div>
+      <input class="dnote qother" data-q="${n}" data-other maxlength="500" value="${esc(a.other || '')}" placeholder="Other: type your own answer" aria-label="Other answer"></div>`; }).join('') +
+    `<div class="acts" style="grid-template-columns:2fr 1fr"><button class="a ok" data-act="answer"${answered(d) ? '' : ' disabled'}>✔ Send answer${d.questions.length > 1 ? 's' : ''}</button><button class="a hd" data-act="skip" title="Leave this card and answer it in the terminal instead">Answer in terminal</button></div>`;
 }
 function renderQueue() {
   const list = visibleDecisions().filter(d => filter === 'all' || (!d.offpage && d.div === filter)).sort(sortDecisions);
@@ -888,6 +924,14 @@ $('#queue').addEventListener('click', e => {
 });
 $('#queue').addEventListener('mouseover', e => { const c = e.target.closest('.item'); hoverFromQueue = c ? (AG[(decisions.find(d => d.id === c.dataset.id) || {}).agent] || {}).id || null : null; });
 $('#queue').addEventListener('mouseleave', () => hoverFromQueue = null);
+$('#queue').addEventListener('input', e => { const c = e.target.closest('.item'), d = c && decisions.find(x => x.id === c.dataset.id); if (!d) return;
+  if (e.target.matches('[data-note]')) d.note = e.target.value;
+  else if (e.target.matches('[data-other]')) { const n = +e.target.dataset.q, a = d.ans[n] || (d.ans[n] = {}); a.other = e.target.value; if (a.other.trim() && !d.questions[n].multi) { a.picks = []; c.querySelectorAll(`.qopt[data-q="${n}"]`).forEach(b => b.classList.remove('on')); } const ok = c.querySelector('[data-act="answer"]'); if (ok) ok.disabled = !answered(d); } });
+$('#queue').addEventListener('click', e => { const o = e.target.closest('[data-opt]'), c = e.target.closest('.item'), d = o && c && decisions.find(x => x.id === c.dataset.id); if (!d || !d.questions) return;
+  const n = +o.dataset.q, q = d.questions[n], label = q.options[+o.dataset.opt].label, a = d.ans[n] || (d.ans[n] = {}), picks = a.picks || [];
+  a.picks = q.multi ? (picks.includes(label) ? picks.filter(x => x !== label) : [...picks, label]) : (picks[0] === label ? [] : [label]); if (!q.multi) a.other = '';
+  renderQueue(); });
+$('#queue').addEventListener('keydown', e => { if (e.target.matches('[data-other]')) { e.stopPropagation(); if (e.key === 'Enter') { const c = e.target.closest('.item'); if (c) resolve(c.dataset.id, 'answer'); } } else if (e.target.matches('[data-note]')) { e.stopPropagation(); if (e.key === 'Enter') { const c = e.target.closest('.item'); if (c) resolve(c.dataset.id, 'deny'); } } });
 $('#tabs').addEventListener('click', e => { const t = e.target.closest('[data-tab]'); if (t) { filter = t.dataset.tab; renderTabs(); renderQueue(); } });
 function focusAgent(id) {
   const a = AG[id]; a.focusUntil = performance.now() / 1000 + 3.2;
@@ -1743,7 +1787,8 @@ function applyOffice(o) {
     const key = obsRoom[it.root] || 'command', off = !obsRoom[it.root], ex = decisions.find(d => d.id === id);
     if (ex) { ex.offpage = off; ex.div = key; return; }
     const d = pm
-      ? { permId: pm.id, perm: true, title: pm.tool + ': ' + pm.summary, detail: `“${it.name}” in ${it.project} wants to run this.`, full: pm.full, sugg: pm.suggestions, created: pm.created, ticket: it.pid || 0 }
+      ? (pm.questions ? { permId: pm.id, perm: true, questions: pm.questions, ans: {}, title: 'Question: ' + (pm.questions[0].header || pm.questions[0].question), detail: `“${it.name}” in ${it.project} is asking you${pm.questions.length > 1 ? ` ${pm.questions.length} things` : ''}.`, created: pm.created, ticket: it.pid || 0 }
+        : { permId: pm.id, perm: true, title: pm.tool + ': ' + pm.summary, detail: `“${it.name}” in ${it.project} wants to run this.`, full: pm.full, sugg: pm.suggestions, created: pm.created, ticket: it.pid || 0 })
       : { title: 'Needs you: ' + (it.waitingFor || 'permission or a question'), detail: `“${it.name}” in ${it.project} is paused until you answer in Claude Code.`, created: it.since || Date.now(), ticket: it.pid || 0 };
     decisions.push({ id, agent: it.id, div: key, offpage: off, observed: true, root: it.root, project: it.project, who: it.name, prio: 1, blocks: 1, tok: 0, held: false, rev: 0, fresh: true, esc: false, ...d });
     if (AG[it.id]) burst(AG[it.id], '!', '#ffc83d', ['#ffc83d', '#fff3c4']);
@@ -1769,11 +1814,12 @@ let obsHidden = 0;
 
 function resolveObs(id, act) {
   const d = decisions.find(x => x.id === id); if (!d || !d.perm) return;
-  const verb = { allow: 'ALLOWED', always: 'ALWAYS-ALLOWED', deny: 'DENIED' }[act]; if (!verb) return;
-  api('/api/perm/decide', { id: d.permId, behavior: act === 'deny' ? 'deny' : 'allow', suggestion: act === 'always' ? 0 : undefined }).then(() => {
+  const verb = { allow: 'ALLOWED', always: 'ALWAYS-ALLOWED', deny: 'DENIED', answer: 'ANSWERED', skip: 'LEFT TO THE TERMINAL' }[act]; if (!verb) return;
+  if (act === 'answer' && !(d.questions && answered(d))) return;
+  api('/api/perm/decide', { id: d.permId, answers: act === 'answer' ? d.questions.map((q, n) => answerOf(d, n)) : undefined, behavior: act === 'skip' ? 'skip' : act === 'deny' ? 'deny' : 'allow', suggestion: act === 'always' ? 0 : undefined, message: act === 'deny' && d.note ? d.note : undefined }).then(() => {
     const i = decisions.indexOf(d); if (i >= 0) decisions.splice(i, 1);
-    stats.respTotal += (Date.now() - d.created) / 1000; stats.respN++; act === 'deny' ? stats.rejected++ : stats.approved++;
-    logLine('AUDIT', 'operator', `${verb} ${d.title} — ${d.who}`, d.div);
+    if (act !== 'skip') { stats.respTotal += (Date.now() - d.created) / 1000; stats.respN++; act === 'deny' ? stats.rejected++ : stats.approved++; }
+    logLine('AUDIT', 'operator', `${verb} ${d.title} — ${d.who}${act === 'deny' && d.note ? ' · told it: ' + d.note.slice(0, 80) : ''}`, d.div);
     renderQueue(); renderTabs(); renderBadge(); renderConsoleFoot();
   }).catch(err => logLine('ERR', 'operator', 'decision failed: ' + err.message, d.div));
 }
@@ -1850,6 +1896,7 @@ $('#modeTag').addEventListener('click', () => { if (OBS) location.search = '?mod
 <script src="ui/world.js"></script>
 <script src="ui/insights.js"></script>
 <script src="ui/guide.js"></script>
+<script src="ui/launch.js"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -2107,11 +2154,12 @@ $('#modeTag').addEventListener('click', () => { if (OBS) location.search = '?mod
     }
     q('#mChatIn').placeholder = d.canChat === false ? 'Read-only: chat is available for Claude Code sessions' : 'Message this session… (Enter to send, Shift+Enter for a new line)';
     if (d.canChat === false) { q('#mChatIn').disabled = true; q('#mChatSend').disabled = true; q('#mChatHint').textContent = '· ' + d.provider + ' · read-only'; note(d.provider === 'grokbot' ? 'The Grok Bot app keeps no readable conversation here. Only its status is shown.' : 'Conversation shown read-only. Messaging is implemented for Claude Code sessions only.'); if (d.provider === 'grokbot' && !d.messages.length) q('#mChat').innerHTML = '<div class="e">No conversation data (status only).</div>'; return; }
-    running = d.running; if (running) lastRunAt = Date.now(); const busy = d.live && d.status !== 'idle' && !running && Date.now() - lastRunAt > 20000;
+    running = d.running; if (running) lastRunAt = Date.now(); const working = d.live && d.status !== 'idle' && !running && Date.now() - lastRunAt > 20000, busy = working && !d.inbox;
     q('#mChatIn').disabled = running || busy; q('#mChatSend').disabled = running || busy;
     q('#mChatHint').textContent = d.live ? '· open in Claude' : '· not running (will be resumed)';
     if (running) note('● Claude is replying… <button class="ctl" id="mChatStop">STOP</button>', 'run');
-    else if (busy) note(`This session is ${d.status} in Claude. You can send when it is idle.`);
+    else if (busy) note(`This session is ${d.status} in Claude. You can send when it is idle. To message busy sessions, run <code>node install-hook.js --inbox</code>.`);
+    else if (working && !lastErr && !pendingAck) note(d.queued ? `⏳ ${d.queued} message${d.queued > 1 ? 's' : ''} waiting: delivered at this session's next step or when its turn ends.` : `This session is ${d.status}. A message you send now is delivered at its next step.`, d.queued ? 'run' : '');
     else if (lastErr) note(E(lastErr), 'err');
     else if (!pendingAck) note('');
   }
@@ -2134,6 +2182,7 @@ $('#modeTag').addEventListener('click', () => { if (OBS) location.search = '?mod
       const r = await fetch('/api/chat/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: curId, text, ack: !!ack }) }); const d = await r.json();
       if (r.status === 409 && d.needsAck) { pendingAck = text; note(`${E(d.error)} <button class="ctl" id="mChatOk">SEND ANYWAY</button><button class="ctl" id="mChatNo">CANCEL</button>`); return; }
       if (!r.ok) throw new Error(d.error || 'failed');
+      if (d.queued) { pendingAck = null; q('#mChatIn').value = ''; note(`⏳ Queued. Delivered at this session's next step or when its turn ends.`, 'run'); logLine('AUDIT', 'operator', `queued for ${AG[curId].title || AG[curId].name}: ${text.slice(0, 80)}`, AG[curId].div); setTimeout(poll, 400); return; }
       pendingAck = null; q('#mChatIn').value = ''; running = true; note('● Claude is replying…', 'run'); q('#mChatIn').disabled = true; q('#mChatSend').disabled = true; setTimeout(poll, 400);
       logLine('AUDIT', 'operator', `message to ${AG[curId].title || AG[curId].name}: ${text.slice(0, 80)}`, AG[curId].div);
     } catch (e) { lastErr = e.message; note(E(e.message), 'err'); }

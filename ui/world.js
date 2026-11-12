@@ -173,8 +173,22 @@
   if (store.get('po.focus') === '1') setFocus(true);
   addEventListener('keydown', e => {
     if (e.metaKey || e.ctrlKey || e.altKey || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName || '') || e.target.isContentEditable) return;
-    if (!/on-(brain|repos|insights|guide)/.test(app.className)) { if (e.key === 'm' || e.key === 'M') setMap(!mapOn); else if (e.key === 'f' || e.key === 'F') setFocus(!app.classList.contains('focus')); else if (e.key === 'Escape' && mapOn) setMap(false); }
+    if (!/on-(brain|repos|insights|guide)/.test(app.className)) { if (e.key === 'n' || e.key === 'N') jump('waiting'); else if (e.key === 'b' || e.key === 'B') jump('working'); else if (e.key === 'm' || e.key === 'M') setMap(!mapOn); else if (e.key === 'f' || e.key === 'F') setFocus(!app.classList.contains('focus')); else if (e.key === 'Escape' && mapOn) setMap(false); }
   });
+
+  /* jump to the next session that needs you (N), or to the busiest one (B) */
+  let jumpI = 0;
+  function jump(kind) {
+    if (!observing()) return; const say = m => { if (typeof logLine === 'function') logLine('INFO', 'system', m); };
+    let list = lastOffice.sessions.filter(s => !s.sleeping && s.status === kind);
+    if (!list.length) return say(kind === 'waiting' ? 'N: no session is waiting on you' : 'B: no session is working right now');
+    if (kind === 'working') list = [list.slice().sort((a, b) => (b.tools || 0) - (a.tools || 0) || (b.tokens || 0) - (a.tokens || 0))[0]];
+    const it = list[jumpI++ % list.length]; setMap(false);
+    if (typeof obsSolo !== 'undefined' && obsSolo && obsSolo !== it.root) obsSetSolo(null);
+    if (!AG[it.id]) { obsPage = Math.max(0, Math.floor(obsOrder.indexOf(it.root) / PAGE)); applyOffice(lastOffice); }
+    if (AG[it.id] && typeof focusAgent === 'function') focusAgent(it.id);
+    say(`${kind === 'waiting' ? 'needs you' : 'busiest'}: ${it.name || it.id} in ${it.project}`);
+  }
 
   /* ================= 4. BROWSER NOTIFICATIONS (opt-in, only while this tab is not in front) ================= */
   const nBtn = $('#ntfBtn'), canNotify = 'Notification' in window, seen = new Map();
@@ -203,5 +217,19 @@
     for (const id of [...seen.keys()]) if (!present.has(id)) seen.delete(id);
   }, 1500);
 
-  window.POWORLD = { setMap, setFocus, projects };
+  /* ================= 5. SUBSCRIPTION USAGE BARS (needs: node install-hook.js --usage) ================= */
+  const fmtReset = s => { if (!s) return ''; const d = new Date(s * 1000), mins = Math.round((s * 1000 - Date.now()) / 60000); return mins < 0 ? '' : mins < 60 ? `resets in ${mins} min` : mins < 24 * 60 ? `resets ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : `resets ${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()]} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+  async function usageTick() {
+    if (!location.protocol.startsWith('http')) return; const tok = $('#tok'); if (!tok || !tok._built) return;
+    let u; try { u = await (await fetch('/api/usage')).json(); } catch { return; }
+    let box = $('#useBars'); const rows = [['5-HOUR LIMIT', u.five], ['WEEKLY LIMIT', u.week]].filter(r => r[1]);
+    if (!rows.length) { if (box) box.remove(); const tb = $('#tBar'); if (tb) tb.hidden = false; return; }
+    if (!box) { box = document.createElement('div'); box.id = 'useBars'; box.className = 'usebars'; $('#tBar').after(box); }
+    $('#tBar').hidden = true; const stale = Date.now() - u.at > 15 * 60e3;
+    box.innerHTML = rows.map(([name, w]) => { const c = w.used < 70 ? 'var(--green)' : w.used < 90 ? 'var(--amber)' : 'var(--red)'; return `<div class="ub" title="Subscription usage reported by Claude Code${stale ? ' (last update over 15 minutes ago: no session has been active)' : ''}"><span>${name}</span><i><b style="width:${w.used}%;background:${c}"></b></i><em>${Math.round(w.used)}%</em><small>${fmtReset(w.resetsAt)}</small></div>`; }).join('');
+    box.classList.toggle('stale', stale);
+  }
+  setInterval(usageTick, 30000); setTimeout(usageTick, 1500);
+
+  window.POWORLD = { setMap, setFocus, projects, usageTick };
 })();
